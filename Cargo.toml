@@ -8,3 +8,4 @@ repository = "https://github.com/s4njusabu/lanparty"
 readme = "README.md"
 
 [dependencies]
+ratatui = "0.30.2"
