@@ -12,52 +12,34 @@ pub const THEME_OPTIONS_MAX_INDEX: usize = 1;
 pub fn draw_theme_menu(frame: &mut Frame, area: Rect, state: &State) {
     let colors = state.theme.colors();
 
-    let [title, _, options, _] = Layout::vertical([
-        Constraint::Percentage(25),
+    let [_, title, _, options, _] = Layout::vertical([
         Constraint::Percentage(10),
+        Constraint::Percentage(20),
+        Constraint::Percentage(5),
         Constraint::Percentage(50),
-        Constraint::Percentage(15),
+        Constraint::Percentage(10),
     ])
     .areas(area);
 
     draw_banner(frame, title, state);
 
-    let [light_row, dark_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
+    let [dark_row, light_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
         .spacing(1)
         .areas(options);
-
+    let [dark] = Layout::horizontal([Constraint::Length(22)])
+        .flex(Flex::Center)
+        .areas(dark_row);
     let [light] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
         .areas(light_row);
 
-    let [dark] = Layout::horizontal([Constraint::Length(22)])
-        .flex(Flex::Center)
-        .areas(dark_row);
-
     let text_style = Style::default()
         .fg(colors.text)
         .add_modifier(Modifier::BOLD);
-
     let border_style = Style::default().fg(colors.accent);
 
     frame.render_widget(
         Paragraph::new(if state.submenu_hovered == Some(0) {
-            "» Light «"
-        } else {
-            "Light"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
-        light,
-    );
-
-    frame.render_widget(
-        Paragraph::new(if state.submenu_hovered == Some(1) {
             "» Dark «"
         } else {
             "Dark"
@@ -70,6 +52,21 @@ pub fn draw_theme_menu(frame: &mut Frame, area: Rect, state: &State) {
                 .border_style(border_style),
         ),
         dark,
+    );
+    frame.render_widget(
+        Paragraph::new(if state.submenu_hovered == Some(1) {
+            "» Light «"
+        } else {
+            "Light"
+        })
+        .style(text_style)
+        .alignment(Alignment::Center)
+        .block(
+            Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(border_style),
+        ),
+        light,
     );
 }
 

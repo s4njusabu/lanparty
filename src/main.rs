@@ -6,7 +6,7 @@ use ratatui::{
 
 use crate::{
     app::state::{HomeItems, State},
-    ui::{border, home, theme_menu},
+    ui::{border, home, theme_menu, themes::Theme},
 };
 
 mod app;
@@ -39,19 +39,13 @@ fn main() -> std::io::Result<()> {
             }
         })?;
 
+        // In home menu
         if state.in_home
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
-                KeyCode::Enter => {
+                KeyCode::Enter | KeyCode::Right => {
                     state.home_selected = state.home_hovered;
-                }
-                KeyCode::Down => {
-                    if let Some(n) = state.home_hovered
-                        && n < home::HOME_OPTIONS_MAX_INDEX
-                    {
-                        state.home_hovered = Some(n + 1);
-                    }
                 }
                 KeyCode::Up => {
                     if let Some(n) = state.home_hovered
@@ -60,6 +54,14 @@ fn main() -> std::io::Result<()> {
                         state.home_hovered = Some(n - 1);
                     }
                 }
+                KeyCode::Down => {
+                    if let Some(n) = state.home_hovered
+                        && n < home::HOME_OPTIONS_MAX_INDEX
+                    {
+                        state.home_hovered = Some(n + 1);
+                    }
+                }
+
                 KeyCode::Char('q') | KeyCode::Esc => break,
                 _ => {}
             }
@@ -86,14 +88,12 @@ fn main() -> std::io::Result<()> {
                 }
             }
         } else if state.in_submenu
+        // In submenu
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
-                KeyCode::Char('q') | KeyCode::Esc => {
-                    state.in_home = true;
-                    state.in_submenu = false;
-                    state.submenu_hovered = Some(0);
-                    state.submenu_selected = None;
+                KeyCode::Enter | KeyCode::Right => {
+                    state.submenu_selected = state.submenu_hovered;
                 }
                 KeyCode::Up => match state.home_state {
                     HomeItems::Modes => {}
@@ -119,10 +119,31 @@ fn main() -> std::io::Result<()> {
                     HomeItems::Project => {}
                     HomeItems::Exit => {}
                 },
-
+                KeyCode::Char('q') | KeyCode::Left | KeyCode::Esc => {
+                    state.in_home = true;
+                    state.in_submenu = false;
+                    state.submenu_hovered = Some(0);
+                    state.submenu_selected = None;
+                }
                 _ => {}
             }
+
+            match state.home_state {
+                HomeItems::Modes => {}
+                HomeItems::Themes => {
+                    if let Some(n) = state.submenu_selected {
+                        match n {
+                            0 => state.theme = Theme::Dark,
+                            1 => state.theme = Theme::Light,
+                            _ => {}
+                        }
+                    }
+                }
+                HomeItems::Project => {}
+                HomeItems::Exit => {}
+            }
         } else if state.in_chat
+        // In chat
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
