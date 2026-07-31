@@ -50,6 +50,7 @@ fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
         banner_text_area,
     );
 }
+
 fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
     let colors = state.theme.colors();
 
@@ -97,107 +98,67 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
 
     let border_style = Style::default().fg(colors.accent);
 
-    if state.home_hovered == Some(0) {
-        frame.render_widget(
-            Paragraph::new("» Modes «")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            modes,
-        );
-    } else {
-        frame.render_widget(
-            Paragraph::new("Modes")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            modes,
-        );
-    }
+    frame.render_widget(
+        Paragraph::new(if state.home_hovered == Some(0) {
+            "» Modes «"
+        } else {
+            "Modes"
+        })
+        .style(text_style)
+        .alignment(Alignment::Center)
+        .block(
+            Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(border_style),
+        ),
+        modes,
+    );
 
-    if state.home_hovered == Some(1) {
-        frame.render_widget(
-            Paragraph::new("» Themes «")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            themes,
-        );
-    } else {
-        frame.render_widget(
-            Paragraph::new("Themes")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            themes,
-        );
-    }
+    frame.render_widget(
+        Paragraph::new(if state.home_hovered == Some(1) {
+            "» Themes «"
+        } else {
+            "Themes"
+        })
+        .style(text_style)
+        .alignment(Alignment::Center)
+        .block(
+            Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(border_style),
+        ),
+        themes,
+    );
 
-    if state.home_hovered == Some(2) {
-        frame.render_widget(
-            Paragraph::new("» Install «")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            install,
-        );
-    } else {
-        frame.render_widget(
-            Paragraph::new("Install")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            install,
-        );
-    }
+    frame.render_widget(
+        Paragraph::new(if state.home_hovered == Some(2) {
+            "» Install «"
+        } else {
+            "Install"
+        })
+        .style(text_style)
+        .alignment(Alignment::Center)
+        .block(
+            Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(border_style),
+        ),
+        install,
+    );
 
-    if state.home_hovered == Some(3) {
-        frame.render_widget(
-            Paragraph::new("» Exit «")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            exit,
-        );
-    } else {
-        frame.render_widget(
-            Paragraph::new("Exit")
-                .style(text_style)
-                .alignment(Alignment::Center)
-                .block(
-                    Block::bordered()
-                        .border_type(BorderType::Double)
-                        .border_style(border_style),
-                ),
-            exit,
-        );
-    }
+    frame.render_widget(
+        Paragraph::new(if state.home_hovered == Some(3) {
+            "» Exit «"
+        } else {
+            "Exit"
+        })
+        .style(text_style)
+        .alignment(Alignment::Center)
+        .block(
+            Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(border_style),
+        ),
+        exit,
+    );
 }
