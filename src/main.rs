@@ -36,6 +36,9 @@ fn main() -> std::io::Result<()> {
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
+                KeyCode::Enter => {
+                    state.home_selected = state.home_hovered;
+                }
                 KeyCode::Down => {
                     if let Some(n) = state.home_hovered
                         && n < home::HOME_OPTIONS_MAX_INDEX
@@ -53,13 +56,28 @@ fn main() -> std::io::Result<()> {
                 KeyCode::Char('q') | KeyCode::Esc => break,
                 _ => {}
             }
-        }
-        if let Some(n) = state.home_selected {
-            if n == 0 {
-            } else if n == 1 {
-            } else if n == 2 {
-            } else if n == 3 {
-                break;
+
+            if let Some(n) = state.home_selected.take() {
+                match n {
+                    0 | 1 | 2 => {
+                        state.in_home = false;
+                        state.home_hovered = Some(n);
+                    }
+                    3 => break,
+                    _ => {}
+                }
+            }
+        } else if state.in_submenu
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
+                _ => {}
+            }
+        } else if state.in_chat
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
+                _ => {}
             }
         }
     }
