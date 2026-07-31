@@ -20,7 +20,7 @@ pub enum Theme {
     // background: rgb(255, 250, 250)
     // accent: rgb(201, 181, 156)
     // text: rgb(18, 18, 18)
-    // banner: rgb(220, 206, 185)
+    // banner: rgb(253, 216, 161)
     Light,
 }
 
@@ -38,7 +38,7 @@ impl Theme {
                 background: Color::Rgb(255, 250, 250), // rgb(255, 250, 250)
                 accent: Color::Rgb(201, 181, 156),     // rgb(201, 181, 156)
                 text: Color::Rgb(18, 18, 18),          // rgb(18, 18, 18)
-                banner: Color::Rgb(220, 206, 185),     // rgb(220, 206, 185)
+                banner: Color::Rgb(253, 216, 161),     // rgb(253, 216, 161)
             },
         }
     }

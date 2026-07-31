@@ -21,10 +21,10 @@ fn main() -> std::io::Result<()> {
                 frame.area(),
             );
 
-            let inner = border::draw(frame, &state);
+            let inner = border::draw_border(frame, &state);
 
             if state.in_home {
-                ui::home::draw(frame, inner, &state);
+                ui::home::draw_home(frame, inner, &state);
             } else {
             }
         })?;
