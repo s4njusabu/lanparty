@@ -5,8 +5,8 @@ use ratatui::{
 };
 
 use crate::{
-    app::state::State,
-    ui::{border, home},
+    app::state::{HomeItems, State},
+    ui::{border, home, theme_menu},
 };
 
 mod app;
@@ -28,7 +28,14 @@ fn main() -> std::io::Result<()> {
 
             if state.in_home {
                 ui::home::draw_home(frame, inner, &state);
-            } else {
+            } else if state.in_submenu {
+                if let Some(n) = state.home_hovered {
+                    match n {
+                        1 => theme_menu::draw_theme_menu(frame, inner, &state),
+                        _ => {}
+                    }
+                }
+            } else if state.in_chat {
             }
         })?;
 
@@ -59,9 +66,20 @@ fn main() -> std::io::Result<()> {
 
             if let Some(n) = state.home_selected.take() {
                 match n {
-                    0 | 1 | 2 => {
+                    0 => {
                         state.in_home = false;
-                        state.home_hovered = Some(n);
+                        state.in_submenu = true;
+                        state.home_state = HomeItems::Modes;
+                    }
+                    1 => {
+                        state.in_home = false;
+                        state.in_submenu = true;
+                        state.home_state = HomeItems::Themes;
+                    }
+                    2 => {
+                        state.in_home = false;
+                        state.in_submenu = true;
+                        state.home_state = HomeItems::Project;
                     }
                     3 => break,
                     _ => {}
@@ -71,12 +89,36 @@ fn main() -> std::io::Result<()> {
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
+                KeyCode::Char('q') | KeyCode::Esc => {
+                    state.in_home = true;
+                    state.in_submenu = false;
+                    state.submenu_hovered = Some(0);
+                    state.submenu_selected = None;
+                }
+
+                KeyCode::Down => match state.home_state {
+                    HomeItems::Modes => {}
+                    HomeItems::Themes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n < theme_menu::THEME_OPTIONS_MAX_INDEX
+                        {
+                            state.submenu_hovered = Some(n + 1);
+                        }
+                    }
+                    HomeItems::Project => {}
+                    HomeItems::Exit => {}
+                },
+
                 _ => {}
             }
         } else if state.in_chat
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
+                KeyCode::Char('q') | KeyCode::Esc => {
+                    state.in_home = true;
+                    state.in_chat = false;
+                }
                 _ => {}
             }
         }
