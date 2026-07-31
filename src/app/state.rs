@@ -15,7 +15,7 @@ pub enum Mode {
 impl State {
     pub fn new() -> Self {
         State {
-            theme: Theme::Dark,
+            theme: Theme::Light,
             in_home: true,
 
             mode: None,

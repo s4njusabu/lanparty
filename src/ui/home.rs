@@ -7,7 +7,7 @@ use ratatui::{
 
 use crate::app::state::State;
 
-pub fn draw(frame: &mut Frame, area: Rect, state: &State) {
+pub fn draw_home(frame: &mut Frame, area: Rect, state: &State) {
     let [banner_area, content_area] =
         Layout::vertical([Constraint::Length(12), Constraint::Min(0)]).areas(area);
 
