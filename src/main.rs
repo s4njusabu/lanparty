@@ -95,7 +95,18 @@ fn main() -> std::io::Result<()> {
                     state.submenu_hovered = Some(0);
                     state.submenu_selected = None;
                 }
-
+                KeyCode::Up => match state.home_state {
+                    HomeItems::Modes => {}
+                    HomeItems::Themes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n > 0
+                        {
+                            state.submenu_hovered = Some(n - 1);
+                        }
+                    }
+                    HomeItems::Project => {}
+                    HomeItems::Exit => {}
+                },
                 KeyCode::Down => match state.home_state {
                     HomeItems::Modes => {}
                     HomeItems::Themes => {
