@@ -4,7 +4,10 @@ use ratatui::{
     widgets::Block,
 };
 
-use crate::{app::state::State, ui::border};
+use crate::{
+    app::state::State,
+    ui::{border, home},
+};
 
 mod app;
 mod services;
@@ -29,10 +32,34 @@ fn main() -> std::io::Result<()> {
             }
         })?;
 
-        if let Event::Key(key_event) = event::read()? {
+        if state.in_home
+            && let Event::Key(key_event) = event::read()?
+        {
             match key_event.code {
-                KeyCode::Esc => break,
+                KeyCode::Down => {
+                    if let Some(n) = state.home_hovered
+                        && n < home::HOME_OPTIONS_MAX_INDEX
+                    {
+                        state.home_hovered = Some(n + 1);
+                    }
+                }
+                KeyCode::Up => {
+                    if let Some(n) = state.home_hovered
+                        && n > 0
+                    {
+                        state.home_hovered = Some(n - 1);
+                    }
+                }
+                KeyCode::Char('q') | KeyCode::Esc => break,
                 _ => {}
+            }
+        }
+        if let Some(n) = state.home_selected {
+            if n == 0 {
+            } else if n == 1 {
+            } else if n == 2 {
+            } else if n == 3 {
+                break;
             }
         }
     }
