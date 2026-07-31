@@ -4,7 +4,10 @@ use ratatui::{
     widgets::Block,
 };
 
-use crate::{app::state::State, ui::border};
+use crate::{
+    app::state::State,
+    ui::{border, home},
+};
 
 mod app;
 mod services;
@@ -21,17 +24,59 @@ fn main() -> std::io::Result<()> {
                 frame.area(),
             );
 
-            let inner = border::draw(frame, &state);
+            let inner = border::draw_border(frame, &state);
 
             if state.in_home {
-                ui::home::draw(frame, inner, &state);
+                ui::home::draw_home(frame, inner, &state);
             } else {
             }
         })?;
 
-        if let Event::Key(key_event) = event::read()? {
+        if state.in_home
+            && let Event::Key(key_event) = event::read()?
+        {
             match key_event.code {
-                KeyCode::Esc => break,
+                KeyCode::Enter => {
+                    state.home_selected = state.home_hovered;
+                }
+                KeyCode::Down => {
+                    if let Some(n) = state.home_hovered
+                        && n < home::HOME_OPTIONS_MAX_INDEX
+                    {
+                        state.home_hovered = Some(n + 1);
+                    }
+                }
+                KeyCode::Up => {
+                    if let Some(n) = state.home_hovered
+                        && n > 0
+                    {
+                        state.home_hovered = Some(n - 1);
+                    }
+                }
+                KeyCode::Char('q') | KeyCode::Esc => break,
+                _ => {}
+            }
+
+            if let Some(n) = state.home_selected.take() {
+                match n {
+                    0 | 1 | 2 => {
+                        state.in_home = false;
+                        state.home_hovered = Some(n);
+                    }
+                    3 => break,
+                    _ => {}
+                }
+            }
+        } else if state.in_submenu
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
+                _ => {}
+            }
+        } else if state.in_chat
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
                 _ => {}
             }
         }

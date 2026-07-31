@@ -3,8 +3,13 @@ use crate::ui::themes::Theme;
 pub struct State {
     pub theme: Theme,
     pub in_home: bool,
+    pub in_submenu: bool,
+    pub in_chat: bool,
 
     pub mode: Option<Mode>,
+
+    pub home_hovered: Option<usize>,
+    pub home_selected: Option<usize>,
 }
 
 pub enum Mode {
@@ -17,8 +22,12 @@ impl State {
         State {
             theme: Theme::Dark,
             in_home: true,
+            in_submenu: false,
+            in_chat: false,
 
             mode: None,
+            home_hovered: Some(0),
+            home_selected: None,
         }
     }
 }

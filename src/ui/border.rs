@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::app::state::State;
 
-pub fn draw(frame: &mut Frame, state: &State) -> Rect {
+pub fn draw_border(frame: &mut Frame, state: &State) -> Rect {
     let colors = state.theme.colors();
     let block = Block::bordered()
         .title(Line::from(vec![
