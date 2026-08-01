@@ -75,13 +75,13 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
     ])
     .areas(area);
 
-    // vertical 
-let [_, menu, _] = Layout::vertical([
-    Constraint::Percentage(15),
-    Constraint::Percentage(80),
-    Constraint::Percentage(5),
-])
-.areas(center);
+    // vertical
+    let [_, menu, _] = Layout::vertical([
+        Constraint::Percentage(15),
+        Constraint::Percentage(80),
+        Constraint::Percentage(5),
+    ])
+    .areas(center);
 
     // horizontal
     let [modes, themes, install, exit] = Layout::vertical([
