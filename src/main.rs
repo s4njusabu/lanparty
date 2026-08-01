@@ -5,8 +5,8 @@ use ratatui::{
 };
 
 use crate::{
-    app::state::{HomeItems, State},
-    ui::{border, home, theme_menu, themes::Theme},
+    app::state::{HomeItems, Mode, State},
+    ui::{border, home, installation_menu, modes_menu, theme_menu, themes::Theme},
 };
 
 mod app;
@@ -31,7 +31,9 @@ fn main() -> std::io::Result<()> {
             } else if state.in_submenu {
                 if let Some(n) = state.home_hovered {
                     match n {
+                        0 => modes_menu::draw_modes_menu(frame, inner, &state),
                         1 => theme_menu::draw_theme_menu(frame, inner, &state),
+                        2 => installation_menu::draw_installation_menu(frame, inner, &state),
                         _ => {}
                     }
                 }
@@ -96,7 +98,13 @@ fn main() -> std::io::Result<()> {
                     state.submenu_selected = state.submenu_hovered;
                 }
                 KeyCode::Up => match state.home_state {
-                    HomeItems::Modes => {}
+                    HomeItems::Modes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n > 0
+                        {
+                            state.submenu_hovered = Some(n - 1);
+                        }
+                    }
                     HomeItems::Themes => {
                         if let Some(n) = state.submenu_hovered
                             && n > 0
@@ -105,10 +113,15 @@ fn main() -> std::io::Result<()> {
                         }
                     }
                     HomeItems::Project => {}
-                    HomeItems::Exit => {}
                 },
                 KeyCode::Down => match state.home_state {
-                    HomeItems::Modes => {}
+                    HomeItems::Modes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n < modes_menu::MODE_OPTIONS_MAX_INDEX
+                        {
+                            state.submenu_hovered = Some(n + 1);
+                        }
+                    }
                     HomeItems::Themes => {
                         if let Some(n) = state.submenu_hovered
                             && n < theme_menu::THEME_OPTIONS_MAX_INDEX
@@ -117,7 +130,6 @@ fn main() -> std::io::Result<()> {
                         }
                     }
                     HomeItems::Project => {}
-                    HomeItems::Exit => {}
                 },
                 KeyCode::Char('q') | KeyCode::Left | KeyCode::Esc => {
                     state.in_home = true;
@@ -129,7 +141,15 @@ fn main() -> std::io::Result<()> {
             }
 
             match state.home_state {
-                HomeItems::Modes => {}
+                HomeItems::Modes => {
+                    if let Some(n) = state.submenu_selected {
+                        match n {
+                            0 => state.mode = Some(Mode::Client),
+                            1 => state.mode = Some(Mode::Server),
+                            _ => {}
+                        }
+                    }
+                }
                 HomeItems::Themes => {
                     if let Some(n) = state.submenu_selected {
                         match n {
@@ -140,7 +160,6 @@ fn main() -> std::io::Result<()> {
                     }
                 }
                 HomeItems::Project => {}
-                HomeItems::Exit => {}
             }
         } else if state.in_chat
         // In chat
