@@ -2,9 +2,13 @@ use std::process::Command;
 
 fn main() {
     if ip_command_exists() {
-        println!("Success");
+        if let Some(ip) = get_user_ip_addr() {
+            println!("{ip}");
+        } else {
+            println!("Failed to find IP address");
+        }
     } else {
-        println!("Error");
+        println!("The \"ip\" command is not installed");
     }
 }
 
@@ -17,5 +21,23 @@ fn ip_command_exists() -> bool {
 }
 
 // The logic should be
-// If the above function returns true, run the function below 
+// If the above function returns true, run the function below
 // else just return a string that says "dependencies not installed" or something like that
+
+// Keep
+fn get_user_ip_addr() -> Option<String> {
+    if let Ok(output) = Command::new("ip")
+        .args(["route", "get", "8.8.8.8"])
+        .output()
+    {
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut words = text.split_whitespace();
+        while let Some(word) = words.next() {
+            if word == "src" {
+                return words.next().map(|ip| ip.to_string());
+            }
+        }
+    }
+
+    None
+}
