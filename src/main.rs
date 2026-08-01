@@ -1,5 +1,5 @@
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode},
+    crossterm::event::{self, Event, KeyCode, KeyModifiers},
     style::Style,
     widgets::Block,
 };
@@ -65,6 +65,7 @@ fn main() -> std::io::Result<()> {
                 }
 
                 KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
             }
 
@@ -137,6 +138,7 @@ fn main() -> std::io::Result<()> {
                     state.submenu_hovered = Some(0);
                     state.submenu_selected = None;
                 }
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
             }
 
@@ -170,6 +172,7 @@ fn main() -> std::io::Result<()> {
                     state.in_home = true;
                     state.in_chat = false;
                 }
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
             }
         }
