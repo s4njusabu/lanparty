@@ -23,7 +23,6 @@ pub enum HomeItems {
     Modes,
     Themes,
     Project,
-    Exit,
 }
 
 pub enum Mode {

@@ -67,21 +67,21 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
 
     let area = block.inner(content_area);
 
-    // horizontal
-    let [_, left, _] = Layout::horizontal([
+    // horizontal (dividing the area so i get like a perfecly centered buttons)
+    let [_, center, _] = Layout::horizontal([
         Constraint::Percentage(40),
         Constraint::Percentage(20),
         Constraint::Percentage(40),
     ])
     .areas(area);
 
-    // vertical
-    let [_, menu, _] = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Length(20),
-        Constraint::Fill(0),
-    ])
-    .areas(left);
+    // vertical 
+let [_, menu, _] = Layout::vertical([
+    Constraint::Percentage(15),
+    Constraint::Percentage(80),
+    Constraint::Percentage(5),
+])
+.areas(center);
 
     // horizontal
     let [modes, themes, install, exit] = Layout::vertical([
@@ -132,9 +132,9 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
 
     frame.render_widget(
         Paragraph::new(if state.home_hovered == Some(2) {
-            "» Install «"
+            "» Installation «"
         } else {
-            "Install"
+            "Installation"
         })
         .style(text_style)
         .alignment(Alignment::Center)
