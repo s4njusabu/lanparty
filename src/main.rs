@@ -10,6 +10,8 @@ fn main() {
     } else {
         println!("The \"ip\" command is not installed");
     }
+
+    println!("{:?}", get_interface());
 }
 
 // Keep
@@ -39,5 +41,21 @@ fn get_user_ip_addr() -> Option<String> {
         }
     }
 
+    None
+}
+
+fn get_interface() -> Option<String> {
+    if let Ok(output) = Command::new("ip")
+        .args(["route", "get", "8.8.8.8"])
+        .output()
+    {
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut words = text.split_whitespace();
+        while let Some(word) = words.next() {
+            if word == "dev" {
+                return words.next().map(|interface| interface.to_string());
+            }
+        }
+    }
     None
 }
