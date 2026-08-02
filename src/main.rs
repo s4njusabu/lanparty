@@ -12,6 +12,7 @@ fn main() {
     }
 
     println!("{:?}", get_interface());
+    println!("{:?}", get_user_ip_and_network_interface())
 }
 
 // Keep
@@ -26,7 +27,7 @@ fn ip_command_exists() -> bool {
 // If the above function returns true, run the function below
 // else just return a string that says "dependencies not installed" or something like that
 
-// Keep
+// Delete this
 fn get_user_ip_addr() -> Option<String> {
     if let Ok(output) = Command::new("ip")
         .args(["route", "get", "8.8.8.8"])
@@ -44,6 +45,36 @@ fn get_user_ip_addr() -> Option<String> {
     None
 }
 
+
+// Keep this
+fn get_user_ip_and_network_interface() -> Option<Vec<String>> {
+    if let Ok(output) = Command::new("ip")
+        .args(["route", "get", "8.8.8.8"])
+        .output()
+    {
+        let mut ip_and_interface: Vec<String> = Vec::new();
+
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut words = text.split_whitespace();
+        while let Some(word) = words.next() {
+            if word == "dev"
+                && let Some(t1) = words.next()
+            {
+                ip_and_interface.push(t1.to_string());
+            } else if word == "src"
+                && let Some(t2) = words.next()
+            {
+                ip_and_interface.push(t2.to_string());
+            }
+        }
+
+        return Some(ip_and_interface);
+    }
+
+    None
+}
+
+// Delete this
 fn get_interface() -> Option<String> {
     if let Ok(output) = Command::new("ip")
         .args(["route", "get", "8.8.8.8"])
