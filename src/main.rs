@@ -2,8 +2,12 @@ use std::process::Command;
 
 fn main() {
     if ip_command_exists() {
-        if let Some(v) = get_network_interface() {
-            println!("{:?}", get_broadcast_addr(&v));
+        if let Some(mut v1) = get_user_ip_and_network_interface() {
+            let userip = v1.pop().unwrap();
+            if let Some(v2) = get_broadcast_addr(&v1.pop().unwrap()) {
+                let broadcast = v2;
+                println!("{} {}", userip, broadcast);
+            }
         }
     }
 }
@@ -21,18 +25,30 @@ fn ip_command_exists() -> bool {
 // else just return a string that says "dependencies not installed" or something like that
 
 // Keep 
-fn get_network_interface() -> Option<String> {
+// Interface first
+// User ip second
+fn get_user_ip_and_network_interface() -> Option<Vec<String>> {
     if let Ok(output) = Command::new("ip")
         .args(["route", "get", "8.8.8.8"])
         .output()
     {
+        let mut ip_and_interface: Vec<String> = Vec::new();
+
         let text = String::from_utf8_lossy(&output.stdout);
         let mut words = text.split_whitespace();
         while let Some(word) = words.next() {
-            if word == "dev" {
-                return words.next().map(str::to_string);
+            if word == "dev"
+                && let Some(t1) = words.next()
+            {
+                ip_and_interface.push(t1.to_string());
+            } else if word == "src"
+                && let Some(t2) = words.next()
+            {
+                ip_and_interface.push(t2.to_string());
             }
         }
+
+        return Some(ip_and_interface);
     }
 
     None
