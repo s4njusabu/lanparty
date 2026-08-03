@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::state::{HomeItems, Mode, State},
+    app::state::{ConnectedUser, HomeItems, Mode, State},
     services::network::{NetworkEvent, create_server, send_udp_packets_to_broadcast},
     ui::{border, home, installation_menu, modes_menu, theme_menu, themes::Theme},
 };
@@ -20,9 +20,27 @@ fn main() -> std::io::Result<()> {
     let mut terminal = ratatui::init();
     let mut state = State::new();
     let (event_tx, event_rx) = mpsc::channel::<NetworkEvent>();
+    if let Some(username) = petname::petname(2, "-") {
+        state.username = username;
+    }
 
     thread::spawn(|| send_udp_packets_to_broadcast());
     loop {
+        if let Ok(network_event) = event_rx.try_recv() {
+            match network_event {
+                NetworkEvent::ClientConnected(ip) => {
+                    if !state.users_connected.iter().any(|user| user.ip == ip) {
+                        state.users_connected.push(ConnectedUser {
+                            ip,
+                            username: "peelylander".to_string(),
+                        });
+                    }
+                }
+                NetworkEvent::ClientDisconnected(ip) => {}
+                NetworkEvent::ChatMessage { ip, message } => {}
+            }
+        }
+
         terminal.draw(|frame| {
             frame.render_widget(
                 Block::new().style(Style::default().bg(state.theme.colors().background)),

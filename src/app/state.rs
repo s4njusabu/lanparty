@@ -1,4 +1,11 @@
+use std::net::IpAddr;
+
 use crate::ui::themes::Theme;
+
+pub struct ConnectedUser {
+    pub ip: IpAddr,
+    pub username: String,
+}
 
 pub struct State {
     pub theme: Theme,
@@ -11,6 +18,8 @@ pub struct State {
     pub in_chat: bool,
 
     pub mode: Option<Mode>,
+    pub username: String,
+    pub users_connected: Vec<ConnectedUser>,
 
     pub home_hovered: Option<usize>,
     pub home_selected: Option<usize>,
@@ -43,6 +52,8 @@ impl State {
             in_chat: false,
 
             mode: None,
+            username: String::new(),
+            users_connected: Vec::new(),
 
             home_hovered: Some(0),
             home_selected: None,
