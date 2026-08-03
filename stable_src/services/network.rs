@@ -1,8 +1,7 @@
-fn main() {
-    send_udp_packets_to_broadcast();
-}
-
 use std::{net::UdpSocket, process::Command, thread, time::Duration};
+
+const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
+const DISCOVERY_PORT: u16 = 55555;
 
 fn ip_command_exists() -> bool {
     Command::new("ip")
@@ -39,7 +38,7 @@ fn get_user_ip_and_network_interface() -> Option<(String, String)> {
     None
 }
 
-fn get_broadcast_addr(interface: &str) -> Option<String> {
+pub fn get_broadcast_addr(interface: &str) -> Option<String> {
     if let Ok(output) = Command::new("ip")
         .args(["address", "show", interface])
         .output()
@@ -71,11 +70,13 @@ pub fn send_udp_packets_to_broadcast() -> Option<()> {
 
     let socket = UdpSocket::bind(format!("{user_ip}:0")).ok()?;
     socket.set_broadcast(true).ok()?;
-    let destination = format!("{broadcast}:55555");
+
+    let destination = format!("{broadcast}:{DISCOVERY_PORT}");
+
     loop {
         thread::sleep(Duration::from_secs(1));
 
-        socket.send_to(b"LANPARTY", &destination).ok()?;
+        socket.send_to(DISCOVERY_PACKET, &destination).ok()?;
     }
 }
 
@@ -84,16 +85,16 @@ pub fn receive_udp_packets_from_broadcast() -> Option<String> {
         return None;
     }
 
-    let socket = UdpSocket::bind("0.0.0.0:55555").ok()?;
+    let socket = UdpSocket::bind(format!("0.0.0.0:{DISCOVERY_PORT}")).ok()?;
     let mut buf = [0u8; 1024];
 
     loop {
         let (n, sender) = socket.recv_from(&mut buf).ok()?;
 
-        if &buf[..n] != b"LANPARTY" {
+        if &buf[..n] != DISCOVERY_PACKET {
             continue;
         }
 
-        return Some(format!("{}", sender.ip()));
+        return Some(sender.ip().to_string());
     }
 }
