@@ -1,14 +1,12 @@
 use std::{
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     process::Command,
-    sync::mpsc::{Receiver, SendError, Sender},
+    sync::mpsc::Sender,
     thread,
     time::Duration,
 };
 
 use indoc::formatdoc;
-
-use crate::app::state::State;
 
 const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
 const DISCOVERY_PORT: u16 = 55555;
@@ -21,7 +19,7 @@ pub struct Client {
 pub enum NetworkEvent {
     ClientConnected(IpAddr),
     ClientDisconnected(IpAddr),
-    ChatMessage { ip: IpAddr, stream: TcpStream },
+    ChatMessage { ip: IpAddr, message: String },
 }
 
 fn ip_command_exists() -> bool {
