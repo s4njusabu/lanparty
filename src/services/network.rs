@@ -1,7 +1,17 @@
-use std::{net::UdpSocket, process::Command, thread, time::Duration};
+use std::{
+    net::{IpAddr, TcpListener, TcpStream, UdpSocket},
+    process::Command,
+    thread,
+    time::Duration,
+};
 
 const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
 const DISCOVERY_PORT: u16 = 55555;
+
+pub struct Client {
+    ip: IpAddr,
+    stream: TcpStream,
+}
 
 fn ip_command_exists() -> bool {
     Command::new("ip")
@@ -80,7 +90,7 @@ pub fn send_udp_packets_to_broadcast() -> Option<()> {
     }
 }
 
-pub fn receive_udp_packets_from_broadcast() -> Option<String> {
+pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
     if !ip_command_exists() {
         return None;
     }
@@ -95,6 +105,20 @@ pub fn receive_udp_packets_from_broadcast() -> Option<String> {
             continue;
         }
 
-        return Some(sender.ip().to_string());
+        return Some(sender.ip());
     }
 }
+
+fn create_server() {
+    if let Some((_, user_ip)) = get_network_interface_and_user_ip()
+        && let Ok(listener) = TcpListener::bind(format!("{user_ip}:55555"))
+    {}
+}
+
+fn connect_to_server() {
+    if let Some(server_ip) = receive_udp_packets_from_broadcast()
+        && let Ok(stream) = TcpStream::connect((server_ip, 55555))
+    {}
+}
+
+pub fn network_thread() {}
