@@ -1,123 +1,189 @@
-fn main() {
-    send_udp_packets_to_broadcast();
-}
+use std::thread;
 
-use std::{
-    net::{IpAddr, TcpListener, TcpStream, UdpSocket},
-    process::Command,
-    thread,
-    time::Duration,
+use ratatui::{
+    crossterm::event::{self, Event, KeyCode, KeyModifiers},
+    style::Style,
+    widgets::Block,
 };
 
-fn ip_command_exists() -> bool {
-    Command::new("ip")
-        .arg("-V")
-        .output()
-        .is_ok_and(|output| output.status.success())
-}
+use crate::{
+    app::state::{HomeItems, Mode, State},
+    services::network::send_udp_packets_to_broadcast,
+    ui::{border, home, installation_menu, modes_menu, theme_menu, themes::Theme},
+};
 
-fn get_network_interface_and_user_ip() -> Option<(String, String)> {
-    if let Ok(output) = Command::new("ip")
-        .args(["route", "get", "8.8.8.8"])
-        .output()
-    {
-        let mut interface = String::new();
-        let mut user_ip = String::new();
+mod app;
+mod services;
+mod ui;
 
-        let text = String::from_utf8_lossy(&output.stdout);
-        let mut words = text.split_whitespace();
-        while let Some(word) = words.next() {
-            if word == "dev"
-                && let Some(v1) = words.next()
-            {
-                interface = v1.to_string();
-            } else if word == "src"
-                && let Some(v2) = words.next()
-            {
-                user_ip = v2.to_string();
-            }
-        }
+fn main() -> std::io::Result<()> {
+    let mut terminal = ratatui::init();
+    let mut state = State::new();
+    thread::spawn(|| send_udp_packets_to_broadcast());
 
-        return Some((interface, user_ip));
-    }
+    loop {
+        terminal.draw(|frame| {
+            frame.render_widget(
+                Block::new().style(Style::default().bg(state.theme.colors().background)),
+                frame.area(),
+            );
 
-    None
-}
+            let inner = border::draw_border(frame, &state);
 
-fn get_broadcast_addr(interface: &str) -> Option<String> {
-    if let Ok(output) = Command::new("ip")
-        .args(["address", "show", interface])
-        .output()
-    {
-        let text = String::from_utf8_lossy(&output.stdout);
-        for line in text.lines() {
-            let mut words = line.split_whitespace();
-            while let Some(word) = words.next() {
-                if word == "inet" {
-                    words.next();
-                    if words.next() == Some("brd") {
-                        return words.next().map(str::to_string);
+            if state.in_home {
+                ui::home::draw_home(frame, inner, &state);
+            } else if state.in_submenu {
+                if let Some(n) = state.home_hovered {
+                    match n {
+                        0 => modes_menu::draw_modes_menu(frame, inner, &state),
+                        1 => theme_menu::draw_theme_menu(frame, inner, &state),
+                        2 => installation_menu::draw_installation_menu(frame, inner, &state),
+                        _ => {}
                     }
                 }
+            } else if state.in_chat {
+            }
+        })?;
+
+        // In home menu
+        if state.in_home
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
+                KeyCode::Enter | KeyCode::Right => {
+                    state.home_selected = state.home_hovered;
+                }
+                KeyCode::Up => {
+                    if let Some(n) = state.home_hovered
+                        && n > 0
+                    {
+                        state.home_hovered = Some(n - 1);
+                    }
+                }
+                KeyCode::Down => {
+                    if let Some(n) = state.home_hovered
+                        && n < home::HOME_OPTIONS_MAX_INDEX
+                    {
+                        state.home_hovered = Some(n + 1);
+                    }
+                }
+
+                KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
+                _ => {}
+            }
+
+            if let Some(n) = state.home_selected.take() {
+                match n {
+                    0 => {
+                        state.in_home = false;
+                        state.in_submenu = true;
+                        state.home_state = HomeItems::Modes;
+                    }
+                    1 => {
+                        state.in_home = false;
+                        state.in_submenu = true;
+                        state.home_state = HomeItems::Themes;
+                    }
+                    2 => {
+                        state.in_home = false;
+                        state.in_submenu = true;
+                        state.home_state = HomeItems::Project;
+                    }
+                    3 => break,
+                    _ => {}
+                }
+            }
+        } else if state.in_submenu
+        // In submenu
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
+                KeyCode::Enter | KeyCode::Right => {
+                    state.submenu_selected = state.submenu_hovered;
+                }
+                KeyCode::Up => match state.home_state {
+                    HomeItems::Modes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n > 0
+                        {
+                            state.submenu_hovered = Some(n - 1);
+                        }
+                    }
+                    HomeItems::Themes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n > 0
+                        {
+                            state.submenu_hovered = Some(n - 1);
+                        }
+                    }
+                    HomeItems::Project => {}
+                },
+                KeyCode::Down => match state.home_state {
+                    HomeItems::Modes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n < modes_menu::MODE_OPTIONS_MAX_INDEX
+                        {
+                            state.submenu_hovered = Some(n + 1);
+                        }
+                    }
+                    HomeItems::Themes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n < theme_menu::THEME_OPTIONS_MAX_INDEX
+                        {
+                            state.submenu_hovered = Some(n + 1);
+                        }
+                    }
+                    HomeItems::Project => {}
+                },
+                KeyCode::Char('q') | KeyCode::Left | KeyCode::Esc => {
+                    state.in_home = true;
+                    state.in_submenu = false;
+                    state.submenu_hovered = Some(0);
+                    state.submenu_selected = None;
+                }
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
+                _ => {}
+            }
+
+            match state.home_state {
+                HomeItems::Modes => {
+                    if let Some(n) = state.submenu_selected {
+                        match n {
+                            0 => state.mode = Some(Mode::Client),
+                            1 => state.mode = Some(Mode::Server),
+
+                            _ => {}
+                        }
+                    }
+                }
+                HomeItems::Themes => {
+                    if let Some(n) = state.submenu_selected {
+                        match n {
+                            0 => state.theme = Theme::Dark,
+                            1 => state.theme = Theme::Light,
+                            _ => {}
+                        }
+                    }
+                }
+                HomeItems::Project => {}
+            }
+        } else if state.in_chat
+        // In chat
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
+                KeyCode::Char('q') | KeyCode::Esc => {
+                    state.in_home = true;
+                    state.in_chat = false;
+                }
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
+                _ => {}
             }
         }
     }
 
-    None
-}
-
-pub fn send_udp_packets_to_broadcast() -> Option<()> {
-    if !ip_command_exists() {
-        return None;
-    }
-
-    let (interface, user_ip) = get_network_interface_and_user_ip()?;
-    let broadcast = get_broadcast_addr(&interface)?;
-
-    let socket = UdpSocket::bind(format!("{user_ip}:0")).ok()?;
-    socket.set_broadcast(true).ok()?;
-    let destination = format!("{broadcast}:55555");
-    loop {
-        thread::sleep(Duration::from_secs(1));
-
-        socket.send_to(b"LANPARTY", &destination).ok()?;
-    }
-}
-
-pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
-    if !ip_command_exists() {
-        return None;
-    }
-
-    let socket = UdpSocket::bind("0.0.0.0:55555").ok()?;
-    let mut buf = [0u8; 1024];
-
-    loop {
-        let (n, sender) = socket.recv_from(&mut buf).ok()?;
-
-        if &buf[..n] != b"LANPARTY" {
-            continue;
-        }
-
-        return Some(sender.ip());
-    }
-}
-
-// everything above goes to the stable src (except the main function of course)
-
-struct Client {
-    ip: IpAddr,
-    stream: TcpStream,
-}
-
-fn create_server() {
-    if let Some((_, user_ip)) = get_network_interface_and_user_ip()
-        && let Ok(listener) = TcpListener::bind(format!("{user_ip}:55555"))
-    {}
-}
-
-fn connect_to_server() {
-    if let Some(server_ip) = receive_udp_packets_from_broadcast()
-        && let Ok(stream) = TcpStream::connect((server_ip, 55555))
-    {}
+    ratatui::restore();
+    println!("Bye from LAN Party!");
+    Ok(())
 }
