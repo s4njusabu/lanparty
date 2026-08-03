@@ -1,9 +1,14 @@
 use std::{
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     process::Command,
+    sync::mpsc::{Receiver, SendError, Sender},
     thread,
     time::Duration,
 };
+
+use indoc::formatdoc;
+
+use crate::app::state::State;
 
 const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
 const DISCOVERY_PORT: u16 = 55555;
@@ -11,6 +16,12 @@ const DISCOVERY_PORT: u16 = 55555;
 pub struct Client {
     ip: IpAddr,
     stream: TcpStream,
+}
+
+pub enum NetworkEvent {
+    ClientConnected(IpAddr),
+    ClientDisconnected(IpAddr),
+    ChatMessage { ip: IpAddr, stream: TcpStream },
 }
 
 fn ip_command_exists() -> bool {
@@ -109,10 +120,40 @@ pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
     }
 }
 
-fn create_server() {
-    if let Some((_, user_ip)) = get_network_interface_and_user_ip()
-        && let Ok(listener) = TcpListener::bind(format!("{user_ip}:55555"))
-    {}
+pub fn create_server(event_tx: Sender<NetworkEvent>) -> std::io::Result<()> {
+    let mut clients: Vec<Client> = Vec::new();
+
+    let (_, user_ip) = get_network_interface_and_user_ip()
+        .ok_or(std::io::Error::other("Failed to get network interface"))?;
+
+    let listener = TcpListener::bind(format!("{user_ip}:55555"))?;
+
+    loop {
+        if let Ok((stream, addr)) = listener.accept() {
+            clients.push(Client {
+                ip: addr.ip(),
+                stream,
+            });
+
+            println!(
+                "{}",
+                formatdoc!(
+                    "new user connected
+                ip: {}
+                port: {}
+                total connected: {}
+                ",
+                    addr.ip(),
+                    addr.port(),
+                    clients.len()
+                )
+            );
+
+            event_tx
+                .send(NetworkEvent::ClientConnected(addr.ip()))
+                .map_err(|_| std::io::Error::other("Receiver dropped"))?;
+        }
+    }
 }
 
 fn connect_to_server() {
