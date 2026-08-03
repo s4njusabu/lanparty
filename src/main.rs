@@ -2,7 +2,12 @@ fn main() {
     send_udp_packets_to_broadcast();
 }
 
-use std::{net::UdpSocket, process::Command, thread, time::Duration};
+use std::{
+    net::{IpAddr, TcpListener, TcpStream, UdpSocket},
+    process::Command,
+    thread,
+    time::Duration,
+};
 
 fn ip_command_exists() -> bool {
     Command::new("ip")
@@ -11,7 +16,7 @@ fn ip_command_exists() -> bool {
         .is_ok_and(|output| output.status.success())
 }
 
-fn get_user_ip_and_network_interface() -> Option<(String, String)> {
+fn get_network_interface_and_user_ip() -> Option<(String, String)> {
     if let Ok(output) = Command::new("ip")
         .args(["route", "get", "8.8.8.8"])
         .output()
@@ -66,7 +71,7 @@ pub fn send_udp_packets_to_broadcast() -> Option<()> {
         return None;
     }
 
-    let (interface, user_ip) = get_user_ip_and_network_interface()?;
+    let (interface, user_ip) = get_network_interface_and_user_ip()?;
     let broadcast = get_broadcast_addr(&interface)?;
 
     let socket = UdpSocket::bind(format!("{user_ip}:0")).ok()?;
@@ -79,7 +84,7 @@ pub fn send_udp_packets_to_broadcast() -> Option<()> {
     }
 }
 
-pub fn receive_udp_packets_from_broadcast() -> Option<String> {
+pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
     if !ip_command_exists() {
         return None;
     }
@@ -94,6 +99,25 @@ pub fn receive_udp_packets_from_broadcast() -> Option<String> {
             continue;
         }
 
-        return Some(format!("{}", sender.ip()));
+        return Some(sender.ip());
     }
+}
+
+// everything above goes to the stable src (except the main function of course)
+
+struct Client {
+    ip: IpAddr,
+    stream: TcpStream,
+}
+
+fn create_server() {
+    if let Some((_, user_ip)) = get_network_interface_and_user_ip()
+        && let Ok(listener) = TcpListener::bind(format!("{user_ip}:55555"))
+    {}
+}
+
+fn connect_to_server() {
+    if let Some(server_ip) = receive_udp_packets_from_broadcast()
+        && let Ok(stream) = TcpStream::connect((server_ip, 55555))
+    {}
 }

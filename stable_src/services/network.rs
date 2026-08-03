@@ -10,7 +10,7 @@ fn ip_command_exists() -> bool {
         .is_ok_and(|output| output.status.success())
 }
 
-fn get_user_ip_and_network_interface() -> Option<(String, String)> {
+fn get_network_interface_and_user_ip() -> Option<(String, String)> {
     if let Ok(output) = Command::new("ip")
         .args(["route", "get", "8.8.8.8"])
         .output()
@@ -65,7 +65,7 @@ pub fn send_udp_packets_to_broadcast() -> Option<()> {
         return None;
     }
 
-    let (interface, user_ip) = get_user_ip_and_network_interface()?;
+    let (interface, user_ip) = get_network_interface_and_user_ip()?;
     let broadcast = get_broadcast_addr(&interface)?;
 
     let socket = UdpSocket::bind(format!("{user_ip}:0")).ok()?;
