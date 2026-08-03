@@ -1,4 +1,4 @@
-use std::thread;
+use std::{sync::mpsc, thread};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::{
     app::state::{HomeItems, Mode, State},
-    services::network::send_udp_packets_to_broadcast,
+    services::network::{NetworkEvent, create_server, send_udp_packets_to_broadcast},
     ui::{border, home, installation_menu, modes_menu, theme_menu, themes::Theme},
 };
 
@@ -19,8 +19,9 @@ mod ui;
 fn main() -> std::io::Result<()> {
     let mut terminal = ratatui::init();
     let mut state = State::new();
-    thread::spawn(|| send_udp_packets_to_broadcast());
+    let (event_tx, event_rx) = mpsc::channel::<NetworkEvent>();
 
+    thread::spawn(|| send_udp_packets_to_broadcast());
     loop {
         terminal.draw(|frame| {
             frame.render_widget(
@@ -150,8 +151,18 @@ fn main() -> std::io::Result<()> {
                 HomeItems::Modes => {
                     if let Some(n) = state.submenu_selected {
                         match n {
-                            0 => state.mode = Some(Mode::Client),
-                            1 => state.mode = Some(Mode::Server),
+                            0 => {
+                                state.mode = Some(Mode::Client);
+                            }
+                            1 => {
+                                state.mode = Some(Mode::Server);
+                                let event_tx_clone = event_tx.clone();
+                                thread::spawn(move || {
+                                    if let Err(err) = create_server(event_tx_clone) {
+                                        eprint!("{err}");
+                                    }
+                                });
+                            }
 
                             _ => {}
                         }

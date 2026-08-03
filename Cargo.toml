@@ -8,5 +8,6 @@ repository = "https://github.com/s4njusabu/lanparty"
 readme = "README.md"
 
 [dependencies]
+indoc = "2.0.7"
 ipnet = "2.12.1"
 ratatui = "0.30.2"
