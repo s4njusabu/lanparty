@@ -5,12 +5,12 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::app::state::State;
+use crate::app::ui_state::UiState;
 
 pub const MODE_OPTIONS_MAX_INDEX: usize = 1;
 
-pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
-    let colors = state.theme.colors();
+pub fn draw_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
+    let colors = ui_state.theme.colors();
 
     let [_, title, _, content] = Layout::vertical([
         Constraint::Length(1),
@@ -20,7 +20,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     ])
     .areas(area);
 
-    draw_banner(frame, title, state);
+    draw_banner(frame, title, ui_state);
 
     let content = content.inner(Margin {
         horizontal: 3,
@@ -45,7 +45,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
         .add_modifier(Modifier::BOLD);
 
     // client
-    let client_border = if state.submenu_hovered == Some(0) {
+    let client_border = if ui_state.submenu_hovered == Some(0) {
         Style::default()
             .fg(colors.selected)
             .add_modifier(Modifier::BOLD)
@@ -56,7 +56,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     frame.render_widget(
         Block::bordered()
             .title(" Client ")
-            .title_style(if state.submenu_hovered == Some(0) {
+            .title_style(if ui_state.submenu_hovered == Some(0) {
                 selected_title_style
             } else {
                 normal_title_style
@@ -82,7 +82,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     frame.render_widget(
         Paragraph::new(format!(
             "Join a session\n\n\nUsername: {}\n\n\nNote: An active host is required.",
-            state.username
+            ui_state.username
         ))
         .alignment(Alignment::Center)
         .style(text_style),
@@ -90,13 +90,13 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     );
 
     frame.render_widget(
-        Paragraph::new(if state.submenu_hovered == Some(0) {
+        Paragraph::new(if ui_state.submenu_hovered == Some(0) {
             "● Selected ●"
         } else {
             "Press ← / →"
         })
         .alignment(Alignment::Center)
-        .style(if state.submenu_hovered == Some(0) {
+        .style(if ui_state.submenu_hovered == Some(0) {
             Style::default()
                 .fg(colors.selected)
                 .add_modifier(Modifier::BOLD)
@@ -107,7 +107,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     );
 
     // host
-    let host_border = if state.submenu_hovered == Some(1) {
+    let host_border = if ui_state.submenu_hovered == Some(1) {
         Style::default()
             .fg(colors.selected)
             .add_modifier(Modifier::BOLD)
@@ -118,7 +118,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     frame.render_widget(
         Block::bordered()
             .title(" Host ")
-            .title_style(if state.submenu_hovered == Some(1) {
+            .title_style(if ui_state.submenu_hovered == Some(1) {
                 selected_title_style
             } else {
                 normal_title_style
@@ -144,7 +144,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     frame.render_widget(
         Paragraph::new(format!(
             "Host a session\n\n\nUsername: {}\n\n\nNote: This device will host the session.",
-            state.username
+            ui_state.username
         ))
         .alignment(Alignment::Center)
         .style(text_style),
@@ -152,13 +152,13 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     );
 
     frame.render_widget(
-        Paragraph::new(if state.submenu_hovered == Some(1) {
+        Paragraph::new(if ui_state.submenu_hovered == Some(1) {
             "● Selected ●"
         } else {
             "Press ← / →"
         })
         .alignment(Alignment::Center)
-        .style(if state.submenu_hovered == Some(1) {
+        .style(if ui_state.submenu_hovered == Some(1) {
             Style::default()
                 .fg(colors.selected)
                 .add_modifier(Modifier::BOLD)
@@ -169,9 +169,9 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     );
 }
 
-fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
+fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let banner = include_str!("../../assets/modes_banner.txt");
-    let colors = state.theme.colors();
+    let colors = ui_state.theme.colors();
 
     let banner_width = banner
         .lines()

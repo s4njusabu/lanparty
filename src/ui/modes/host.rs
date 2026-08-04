@@ -5,10 +5,10 @@ use ratatui::{
     widgets::Block,
 };
 
-use crate::app::state::State;
+use crate::app::{server_state::ServerState, ui_state::UiState};
 
-pub fn draw_host(frame: &mut Frame, inner: Rect, state: &State) {
-    let colors = state.theme.colors();
+pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_state: &ServerState) {
+    let colors = ui_state.theme.colors();
     let area = inner.inner(Margin {
         horizontal: 1,
         vertical: 0,
