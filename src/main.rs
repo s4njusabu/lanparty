@@ -1,4 +1,4 @@
-use std::{sync::mpsc, thread};
+use std::{sync::mpsc, thread, time::Duration};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -14,7 +14,7 @@ use crate::{
     },
     ui::{
         border, home, installation_menu,
-        modes::{client, host},
+        modes::{client, error_page, host},
         modes_menu, theme_menu,
         themes::Theme,
     },
@@ -44,6 +44,11 @@ fn main() -> std::io::Result<()> {
                 }
                 NetworkEvent::ClientDisconnected(ip) => {}
                 NetworkEvent::ChatMessage { ip, message } => {}
+                NetworkEvent::Error(err) => {
+                    if state.in_chat {
+                        state.mode = Some(Mode::Error(err));
+                    }
+                }
             }
         }
 
@@ -57,20 +62,23 @@ fn main() -> std::io::Result<()> {
 
             if state.in_home {
                 ui::home::draw_home(frame, inner, &state);
-            } else if state.in_submenu {
-                if let Some(n) = state.home_hovered {
-                    match n {
-                        0 => modes_menu::draw_modes_menu(frame, inner, &state),
-                        1 => theme_menu::draw_theme_menu(frame, inner, &state),
-                        2 => installation_menu::draw_installation_menu(frame, inner, &state),
-                        _ => {}
-                    }
+            } else if state.in_submenu
+                && let Some(n) = state.home_hovered
+            {
+                match n {
+                    0 => modes_menu::draw_modes_menu(frame, inner, &state),
+                    1 => theme_menu::draw_theme_menu(frame, inner, &state),
+                    2 => installation_menu::draw_installation_menu(frame, inner, &state),
+                    _ => {}
                 }
-            } else if state.in_chat {
-                if let Some(mode) = &state.mode {
-                    match mode {
-                        Mode::Client => client::draw_client(frame, inner, &state),
-                        Mode::Host => host::draw_host(frame, inner, &state),
+            } else if state.in_chat
+                && let Some(mode) = &state.mode
+            {
+                match mode {
+                    Mode::Client => client::draw_client(frame, inner, &state),
+                    Mode::Host => host::draw_host(frame, inner, &state),
+                    Mode::Error(err) => {
+                        error_page::draw_error_page(frame, inner, &state, *err);
                     }
                 }
             }
@@ -78,6 +86,7 @@ fn main() -> std::io::Result<()> {
 
         // In home menu
         if state.in_home
+            && event::poll(Duration::from_millis(16))?
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
@@ -126,9 +135,10 @@ fn main() -> std::io::Result<()> {
                 }
             }
         } else if state.in_submenu
-        // In submenu
+            && event::poll(Duration::from_millis(16))?
             && let Event::Key(key_event) = event::read()?
         {
+            // In submenu
             match key_event.code {
                 KeyCode::Enter => {
                     if state.home_state == HomeItems::Modes {
@@ -224,10 +234,10 @@ fn main() -> std::io::Result<()> {
                                 state.mode = Some(Mode::Host);
 
                                 let event_tx_clone = event_tx.clone();
-                                thread::spawn(|| {
-                                    // ------------------- REMINDER ---------------------
-                                    if let Err(err) = create_server(event_tx_clone) {
-                                        eprintln!("{err}");
+                                thread::spawn(move || {
+                                    if let Err(err) = create_server(event_tx_clone.clone()) {
+                                        let _ =
+                                            event_tx_clone.send(NetworkEvent::Error(err.kind()));
                                     }
                                 });
                             }
@@ -248,9 +258,10 @@ fn main() -> std::io::Result<()> {
                 HomeItems::Project => {}
             }
         } else if state.in_chat
-        // In chat
+            && event::poll(Duration::from_millis(16))?
             && let Event::Key(key_event) = event::read()?
         {
+            // In chat
             match key_event.code {
                 KeyCode::Char('q') | KeyCode::Esc => break,
                 KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {

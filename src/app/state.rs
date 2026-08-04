@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::{io::ErrorKind, net::IpAddr};
 
 use crate::ui::themes::Theme;
 
@@ -38,6 +38,7 @@ pub enum HomeItems {
 pub enum Mode {
     Client,
     Host,
+    Error(ErrorKind),
 }
 
 impl State {
