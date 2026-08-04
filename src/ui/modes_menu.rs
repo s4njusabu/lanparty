@@ -12,68 +12,162 @@ pub const MODE_OPTIONS_MAX_INDEX: usize = 1;
 pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     let colors = state.theme.colors();
 
-    let [_, title, _, options, _] = Layout::vertical([
-        Constraint::Percentage(10),
-        Constraint::Percentage(20),
-        Constraint::Percentage(5),
-        Constraint::Percentage(50),
-        Constraint::Percentage(10),
+    let [_, title, _, content] = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(8),
+        Constraint::Length(1),
+        Constraint::Min(0),
     ])
     .areas(area);
 
     draw_banner(frame, title, state);
 
-    let [client_row, server_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
-        .spacing(1)
-        .areas(options);
+    let content = content.inner(Margin {
+        horizontal: 3,
+        vertical: 1,
+    });
 
-    let [client] = Layout::horizontal([Constraint::Length(22)])
-        .flex(Flex::Center)
-        .areas(client_row);
-
-    let [server] = Layout::horizontal([Constraint::Length(22)])
-        .flex(Flex::Center)
-        .areas(server_row);
+    let [server, client] =
+        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .spacing(3)
+            .areas(content);
 
     let text_style = Style::default()
         .fg(colors.text)
         .add_modifier(Modifier::BOLD);
 
-    let border_style = Style::default().fg(colors.accent);
+    let selected_title_style = Style::default()
+        .fg(colors.selected)
+        .add_modifier(Modifier::BOLD);
+
+    let normal_title_style = Style::default()
+        .fg(colors.text)
+        .add_modifier(Modifier::BOLD);
+
+    let server_border = if state.submenu_hovered == Some(0) {
+        Style::default()
+            .fg(colors.selected)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(colors.accent)
+    };
+
+    frame.render_widget(
+        Block::bordered()
+            .title(" Server ")
+            .title_style(if state.submenu_hovered == Some(0) {
+                selected_title_style
+            } else {
+                normal_title_style
+            })
+            .border_type(BorderType::Double)
+            .border_style(server_border),
+        server,
+    );
+
+    let inner = server.inner(Margin {
+        horizontal: 2,
+        vertical: 1,
+    });
+
+    let [_, body, _, footer] = Layout::vertical([
+        Constraint::Percentage(18),
+        Constraint::Length(4),
+        Constraint::Min(0),
+        Constraint::Length(1),
+    ])
+    .areas(inner);
+
+    frame.render_widget(
+        Paragraph::new(
+            "Host a LAN Party\n\n\
+             Create a server so other\n\
+             players can discover and join.",
+        )
+        .alignment(Alignment::Center)
+        .style(text_style),
+        body,
+    );
 
     frame.render_widget(
         Paragraph::new(if state.submenu_hovered == Some(0) {
-            "» Client «"
+            "● SELECTED ●"
         } else {
-            "Client"
+            "Press ↑ / ↓"
         })
-        .style(text_style)
         .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        .style(if state.submenu_hovered == Some(0) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(colors.text)
+        }),
+        footer,
+    );
+
+    let client_border = if state.submenu_hovered == Some(1) {
+        Style::default()
+            .fg(colors.selected)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(colors.accent)
+    };
+
+    frame.render_widget(
+        Block::bordered()
+            .title(" Client ")
+            .title_style(if state.submenu_hovered == Some(1) {
+                selected_title_style
+            } else {
+                normal_title_style
+            })
+            .border_type(BorderType::Double)
+            .border_style(client_border),
         client,
+    );
+
+    let inner = client.inner(Margin {
+        horizontal: 2,
+        vertical: 1,
+    });
+
+    let [_, body, _, footer] = Layout::vertical([
+        Constraint::Percentage(18),
+        Constraint::Length(4),
+        Constraint::Min(0),
+        Constraint::Length(1),
+    ])
+    .areas(inner);
+
+    frame.render_widget(
+        Paragraph::new(
+            "Join a LAN Party\n\n\
+             Discover LAN servers\n\
+             and connect instantly.",
+        )
+        .alignment(Alignment::Center)
+        .style(text_style),
+        body,
     );
 
     frame.render_widget(
         Paragraph::new(if state.submenu_hovered == Some(1) {
-            "» Server «"
+            "● SELECTED ●"
         } else {
-            "Server"
+            "Press ↑ / ↓"
         })
-        .style(text_style)
         .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
-        server,
+        .style(if state.submenu_hovered == Some(1) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(colors.text)
+        }),
+        footer,
     );
 }
-
 fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
     let banner = include_str!("../../assets/modes_banner.txt");
     let colors = state.theme.colors();
