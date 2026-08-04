@@ -12,7 +12,12 @@ use crate::{
         get_username::get_username,
         network::{NetworkEvent, create_server, send_udp_packets_to_broadcast},
     },
-    ui::{border, home, installation_menu, modes_menu, theme_menu, themes::Theme},
+    ui::{
+        border, home, installation_menu,
+        modes::{client, host},
+        modes_menu, theme_menu,
+        themes::Theme,
+    },
 };
 
 mod app;
@@ -62,6 +67,12 @@ fn main() -> std::io::Result<()> {
                     }
                 }
             } else if state.in_chat {
+                if let Some(mode) = &state.mode {
+                    match mode {
+                        Mode::Client => client::draw_client(frame, inner, &state),
+                        Mode::Host => host::draw_host(frame, inner, &state),
+                    }
+                }
             }
         })?;
 
@@ -120,7 +131,12 @@ fn main() -> std::io::Result<()> {
         {
             match key_event.code {
                 KeyCode::Enter => {
-                    state.submenu_selected = state.submenu_hovered;
+                    if state.home_state == HomeItems::Modes {
+                        state.in_chat = true;
+                        state.submenu_selected = state.submenu_hovered;
+                    } else {
+                        state.submenu_selected = state.submenu_hovered;
+                    }
                 }
                 KeyCode::Right => match state.home_state {
                     HomeItems::Modes => {
@@ -195,17 +211,23 @@ fn main() -> std::io::Result<()> {
 
             match state.home_state {
                 HomeItems::Modes => {
-                    if let Some(n) = state.submenu_selected {
+                    if let Some(n) = state.submenu_selected.take() {
                         match n {
                             0 => {
+                                state.in_submenu = false;
+                                state.in_chat = true;
                                 state.mode = Some(Mode::Client);
                             }
                             1 => {
-                                state.mode = Some(Mode::Server);
+                                state.in_submenu = false;
+                                state.in_chat = true;
+                                state.mode = Some(Mode::Host);
+
                                 let event_tx_clone = event_tx.clone();
-                                thread::spawn(move || {
+                                thread::spawn(|| {
+                                    // ------------------- REMINDER ---------------------
                                     if let Err(err) = create_server(event_tx_clone) {
-                                        eprint!("{err}");
+                                        eprintln!("{err}");
                                     }
                                 });
                             }
