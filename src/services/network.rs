@@ -1,5 +1,6 @@
 use std::{
-    io::ErrorKind,
+    fmt::Error,
+    io::{ErrorKind, Read},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     process::Command,
     sync::mpsc::Sender,
@@ -7,20 +8,12 @@ use std::{
     time::Duration,
 };
 
-use indoc::formatdoc;
-
 const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
 const DISCOVERY_PORT: u16 = 55555;
 
-pub struct Client {
-    ip: IpAddr,
-    stream: TcpStream,
-}
-
 pub enum NetworkEvent {
-    ClientConnected(IpAddr),
+    ClientConnected(IpAddr, String),
     ClientDisconnected(IpAddr),
-    ChatMessage { ip: IpAddr, message: String },
     Error(ErrorKind),
 }
 
@@ -121,38 +114,27 @@ pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
 }
 
 // host
-pub fn create_server(event_tx: Sender<NetworkEvent>) -> std::io::Result<()> {
-    let mut clients: Vec<Client> = Vec::new();
-
+pub fn accept_connections(event_tx: Sender<NetworkEvent>) -> std::io::Result<()> {
     let (_, user_ip) = get_network_interface_and_user_ip()
         .ok_or(std::io::Error::other("Failed to get network interface"))?;
 
     let listener = TcpListener::bind(format!("{user_ip}:55555"))?;
+    let mut buf = [0u8; 1024];
 
     loop {
-        if let Ok((stream, addr)) = listener.accept() {
-            clients.push(Client {
-                ip: addr.ip(),
-                stream,
-            });
+        if let Ok((mut stream, addr)) = listener.accept() {
+            let n = stream.read(&mut buf)?;
 
-            println!(
-                "{}",
-                formatdoc!(
-                    "new user connected
-                ip: {}
-                port: {}
-                total connected: {}
-                ",
-                    addr.ip(),
-                    addr.port(),
-                    clients.len()
-                )
-            );
-
-            event_tx
-                .send(NetworkEvent::ClientConnected(addr.ip()))
-                .map_err(|_| std::io::Error::other("Receiver dropped"))?;
+            if n > 0 {
+                let username = String::from_utf8_lossy(&buf[..n]).to_string();
+                event_tx
+                    .send(NetworkEvent::ClientConnected(addr.ip(), username))
+                    .map_err(|_| std::io::Error::other("Something went wrong"))?;
+            } else if n == 0 {
+                event_tx
+                    .send(NetworkEvent::ClientDisconnected(addr.ip()))
+                    .map_err(|_| std::io::Error::other("Something went wrong"))?;
+            }
         }
     }
 }
