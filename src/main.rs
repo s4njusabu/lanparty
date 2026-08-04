@@ -252,11 +252,10 @@ fn main() -> std::io::Result<()> {
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
-                KeyCode::Char('q') | KeyCode::Esc => {
-                    state.in_home = true;
-                    state.in_chat = false;
+                KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {
+                    break;
                 }
-                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
             }
         }
