@@ -72,18 +72,17 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
 
     let [_, body, _, footer] = Layout::vertical([
         Constraint::Percentage(18),
-        Constraint::Length(4),
+        Constraint::Length(8),
         Constraint::Min(0),
         Constraint::Length(1),
     ])
     .areas(inner);
 
     frame.render_widget(
-        Paragraph::new(
-            "Host a LAN Party\n\n\
-             Create a server so other\n\
-             players can discover and join.",
-        )
+        Paragraph::new(format!(
+            "Host a server\n\n\nUsername: {}\n\n\nNote: This device will host the LAN session.",
+            state.username
+        ))
         .alignment(Alignment::Center)
         .style(text_style),
         body,
@@ -91,9 +90,9 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
 
     frame.render_widget(
         Paragraph::new(if state.submenu_hovered == Some(0) {
-            "● SELECTED ●"
+            "● Selected ●"
         } else {
-            "Press ↑ / ↓"
+            "Press ← / →"
         })
         .alignment(Alignment::Center)
         .style(if state.submenu_hovered == Some(0) {
@@ -134,18 +133,17 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
 
     let [_, body, _, footer] = Layout::vertical([
         Constraint::Percentage(18),
-        Constraint::Length(4),
+        Constraint::Length(8),
         Constraint::Min(0),
         Constraint::Length(1),
     ])
     .areas(inner);
 
     frame.render_widget(
-        Paragraph::new(
-            "Join a LAN Party\n\n\
-             Discover LAN servers\n\
-             and connect instantly.",
-        )
+        Paragraph::new(format!(
+            "Join a server\n\n\nUsername: {}\n\n\nNote: An active host is required.",
+            state.username
+        ))
         .alignment(Alignment::Center)
         .style(text_style),
         body,
@@ -153,9 +151,9 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
 
     frame.render_widget(
         Paragraph::new(if state.submenu_hovered == Some(1) {
-            "● SELECTED ●"
+            "● Selected ●"
         } else {
-            "Press ↑ / ↓"
+            "Press ← / →"
         })
         .alignment(Alignment::Center)
         .style(if state.submenu_hovered == Some(1) {

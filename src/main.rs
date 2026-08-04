@@ -119,9 +119,21 @@ fn main() -> std::io::Result<()> {
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
-                KeyCode::Enter | KeyCode::Right => {
+                KeyCode::Enter => {
                     state.submenu_selected = state.submenu_hovered;
                 }
+                KeyCode::Right => match state.home_state {
+                    HomeItems::Modes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n < modes_menu::MODE_OPTIONS_MAX_INDEX
+                        {
+                            state.submenu_hovered = Some(n + 1);
+                        }
+                    }
+                    HomeItems::Themes | HomeItems::Project => {
+                        state.submenu_selected = state.submenu_hovered;
+                    }
+                },
                 KeyCode::Up => match state.home_state {
                     HomeItems::Modes => {
                         if let Some(n) = state.submenu_hovered
@@ -156,12 +168,27 @@ fn main() -> std::io::Result<()> {
                     }
                     HomeItems::Project => {}
                 },
-                KeyCode::Char('q') | KeyCode::Left | KeyCode::Esc => {
+                KeyCode::Char('q') | KeyCode::Esc => {
                     state.in_home = true;
                     state.in_submenu = false;
                     state.submenu_hovered = Some(0);
                     state.submenu_selected = None;
                 }
+                KeyCode::Left => match state.home_state {
+                    HomeItems::Modes => {
+                        if let Some(n) = state.submenu_hovered
+                            && n > 0
+                        {
+                            state.submenu_hovered = Some(n - 1);
+                        }
+                    }
+                    HomeItems::Themes | HomeItems::Project => {
+                        state.in_home = true;
+                        state.in_submenu = false;
+                        state.submenu_hovered = Some(0);
+                        state.submenu_selected = None;
+                    }
+                },
                 KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
             }
