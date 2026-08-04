@@ -15,9 +15,10 @@ pub struct State {
 
     pub in_submenu: bool,
 
+    pub mode: Option<Mode>,
+    pub mode_activated: bool,
     pub in_chat: bool,
 
-    pub mode: Option<Mode>,
     pub username: String,
     pub users_connected: Vec<ConnectedUser>,
 
@@ -53,8 +54,9 @@ impl State {
             in_submenu: false,
 
             in_chat: false,
-
             mode: None,
+            mode_activated: false,
+
             username: String::new(),
             users_connected: Vec::new(),
 

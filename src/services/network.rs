@@ -120,6 +120,7 @@ pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
     }
 }
 
+// host
 pub fn create_server(event_tx: Sender<NetworkEvent>) -> std::io::Result<()> {
     let mut clients: Vec<Client> = Vec::new();
 
@@ -156,10 +157,9 @@ pub fn create_server(event_tx: Sender<NetworkEvent>) -> std::io::Result<()> {
     }
 }
 
+// client
 fn connect_to_server() {
     if let Some(server_ip) = receive_udp_packets_from_broadcast()
         && let Ok(stream) = TcpStream::connect((server_ip, 55555))
     {}
 }
-
-pub fn network_thread() {}

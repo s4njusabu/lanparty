@@ -10,7 +10,10 @@ use crate::{
     app::state::{ConnectedUser, HomeItems, Mode, State},
     services::{
         get_username::get_username,
-        network::{NetworkEvent, create_server, send_udp_packets_to_broadcast},
+        network::{
+            NetworkEvent, create_server, receive_udp_packets_from_broadcast,
+            send_udp_packets_to_broadcast,
+        },
     },
     ui::{
         border, home, installation_menu,
@@ -30,8 +33,21 @@ fn main() -> std::io::Result<()> {
     let (event_tx, event_rx) = mpsc::channel::<NetworkEvent>();
     state.username = get_username();
 
-    thread::spawn(send_udp_packets_to_broadcast);
     loop {
+        if state.in_chat && !state.mode_activated {
+            match state.mode {
+                Some(Mode::Client) => {
+                    thread::spawn(receive_udp_packets_from_broadcast);
+                }
+                Some(Mode::Host) => {
+                    thread::spawn(send_udp_packets_to_broadcast);
+                }
+                Some(Mode::Error(_)) | None => {}
+            }
+
+            state.mode_activated = true;
+        }
+
         if let Ok(network_event) = event_rx.try_recv() {
             match network_event {
                 NetworkEvent::ClientConnected(ip) => {
@@ -78,9 +94,7 @@ fn main() -> std::io::Result<()> {
                 match mode {
                     Mode::Client => client::draw_client(frame, inner, &state),
                     Mode::Host => host::draw_host(frame, inner, &state),
-                    Mode::Error(err) => {
-                        error_page::draw_error_page(frame, inner, &state, *err);
-                    }
+                    Mode::Error(err) => error_page::draw_error_page(frame, inner, &state, *err),
                 }
             }
         })?;
@@ -195,7 +209,7 @@ fn main() -> std::io::Result<()> {
                     }
                     HomeItems::Project => {}
                 },
-                KeyCode::Char('q') | KeyCode::Esc => {
+                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
                     state.in_home = true;
                     state.in_submenu = false;
                     state.submenu_hovered = Some(0);
@@ -226,12 +240,10 @@ fn main() -> std::io::Result<()> {
                         match n {
                             0 => {
                                 state.in_submenu = false;
-                                state.in_chat = true;
                                 state.mode = Some(Mode::Client);
                             }
                             1 => {
                                 state.in_submenu = false;
-                                state.in_chat = true;
                                 state.mode = Some(Mode::Host);
 
                                 let event_tx_clone = event_tx.clone();
@@ -248,7 +260,7 @@ fn main() -> std::io::Result<()> {
                     }
                 }
                 HomeItems::Themes => {
-                    if let Some(n) = state.submenu_selected {
+                    if let Some(n) = state.submenu_selected.take() {
                         match n {
                             0 => state.theme = Theme::Dark,
                             1 => state.theme = Theme::Light,
