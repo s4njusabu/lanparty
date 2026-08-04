@@ -30,7 +30,7 @@ fn main() -> std::io::Result<()> {
     let (event_tx, event_rx) = mpsc::channel::<NetworkEvent>();
     state.username = get_username();
 
-    thread::spawn(|| send_udp_packets_to_broadcast());
+    thread::spawn(send_udp_packets_to_broadcast);
     loop {
         if let Ok(network_event) = event_rx.try_recv() {
             match network_event {
@@ -47,6 +47,7 @@ fn main() -> std::io::Result<()> {
                 NetworkEvent::Error(err) => {
                     if state.in_chat {
                         state.mode = Some(Mode::Error(err));
+                        state.error_occured = true;
                     }
                 }
             }
@@ -262,12 +263,18 @@ fn main() -> std::io::Result<()> {
             && let Event::Key(key_event) = event::read()?
         {
             // In chat
-            match key_event.code {
-                KeyCode::Char('q') | KeyCode::Esc => break,
-                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {
-                    break;
+            if state.error_occured {
+                match key_event.code {
+                    _ => break,
                 }
-                _ => {}
+            } else {
+                match key_event.code {
+                    KeyCode::Char('q') | KeyCode::Esc => break,
+                    KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {
+                        break;
+                    }
+                    _ => {}
+                }
             }
         }
     }

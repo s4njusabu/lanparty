@@ -26,6 +26,7 @@ pub struct State {
 
     pub submenu_hovered: Option<usize>,
     pub submenu_selected: Option<usize>,
+    pub error_occured: bool,
 }
 
 #[derive(PartialEq)]
@@ -62,6 +63,7 @@ impl State {
 
             submenu_hovered: Some(0),
             submenu_selected: None,
+            error_occured: false,
         }
     }
 }
