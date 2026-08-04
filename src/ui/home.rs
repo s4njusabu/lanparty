@@ -5,21 +5,21 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::app::state::State;
+use crate::app::ui_state::UiState;
 
 pub const HOME_OPTIONS_MAX_INDEX: usize = 3;
 
-pub fn draw_home(frame: &mut Frame, area: Rect, state: &State) {
+pub fn draw_home(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let [banner_area, content_area] =
         Layout::vertical([Constraint::Length(12), Constraint::Min(0)]).areas(area);
 
-    draw_banner(frame, banner_area, state);
-    draw_content(frame, content_area, state);
+    draw_banner(frame, banner_area, ui_state);
+    draw_content(frame, content_area, ui_state);
 }
 
-fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
+fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let banner = include_str!("../../assets/banner.txt");
-    let colors = state.theme.colors();
+    let colors = ui_state.theme.colors();
     let banner_width = banner
         .lines()
         .map(|line| line.chars().count())
@@ -51,8 +51,8 @@ fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
     );
 }
 
-fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
-    let colors = state.theme.colors();
+fn draw_content(frame: &mut Frame, content_area: Rect, ui_state: &UiState) {
+    let colors = ui_state.theme.colors();
 
     let content_area = content_area.inner(Margin {
         horizontal: 1,
@@ -99,7 +99,7 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
     let border_style = Style::default().fg(colors.accent);
 
     frame.render_widget(
-        Paragraph::new(if state.home_hovered == Some(0) {
+        Paragraph::new(if ui_state.home_hovered == Some(0) {
             "» Modes «"
         } else {
             "Modes"
@@ -115,7 +115,7 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
     );
 
     frame.render_widget(
-        Paragraph::new(if state.home_hovered == Some(1) {
+        Paragraph::new(if ui_state.home_hovered == Some(1) {
             "» Themes «"
         } else {
             "Themes"
@@ -131,7 +131,7 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
     );
 
     frame.render_widget(
-        Paragraph::new(if state.home_hovered == Some(2) {
+        Paragraph::new(if ui_state.home_hovered == Some(2) {
             "» Installation «"
         } else {
             "Installation"
@@ -147,7 +147,7 @@ fn draw_content(frame: &mut Frame, content_area: Rect, state: &State) {
     );
 
     frame.render_widget(
-        Paragraph::new(if state.home_hovered == Some(3) {
+        Paragraph::new(if ui_state.home_hovered == Some(3) {
             "» Exit «"
         } else {
             "Exit"

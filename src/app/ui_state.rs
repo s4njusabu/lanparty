@@ -1,13 +1,6 @@
-use std::{io::ErrorKind, net::IpAddr};
-
 use crate::ui::themes::Theme;
 
-pub struct ConnectedUser {
-    pub ip: IpAddr,
-    pub username: String,
-}
-
-pub struct State {
+pub struct UiState {
     pub theme: Theme,
 
     pub in_home: bool,
@@ -20,7 +13,6 @@ pub struct State {
     pub in_chat: bool,
 
     pub username: String,
-    pub users_connected: Vec<ConnectedUser>,
 
     pub home_hovered: Option<usize>,
     pub home_selected: Option<usize>,
@@ -40,12 +32,12 @@ pub enum HomeItems {
 pub enum Mode {
     Client,
     Host,
-    Error(ErrorKind),
+    Error(std::io::ErrorKind),
 }
 
-impl State {
+impl UiState {
     pub fn new() -> Self {
-        State {
+        Self {
             theme: Theme::Dark,
 
             in_home: true,
@@ -58,7 +50,6 @@ impl State {
             mode_activated: false,
 
             username: String::new(),
-            users_connected: Vec::new(),
 
             home_hovered: Some(0),
             home_selected: None,

@@ -7,7 +7,10 @@ use ratatui::{
 };
 
 use crate::{
-    app::state::{ConnectedUser, HomeItems, Mode, State},
+    app::{
+        server_state::ServerState,
+        ui_state::{HomeItems, Mode, UiState},
+    },
     services::{
         get_username::get_username,
         network::{
@@ -29,13 +32,16 @@ mod ui;
 
 fn main() -> std::io::Result<()> {
     let mut terminal = ratatui::init();
-    let mut state = State::new();
+
+    let mut ui_state = UiState::new();
+    let mut server_state = ServerState::new();
+
     let (event_tx, event_rx) = mpsc::channel::<NetworkEvent>();
-    state.username = get_username();
+    ui_state.username = get_username();
 
     loop {
-        if state.in_chat && !state.mode_activated {
-            match state.mode {
+        if ui_state.in_chat && !ui_state.mode_activated {
+            match ui_state.mode {
                 Some(Mode::Client) => {
                     thread::spawn(receive_udp_packets_from_broadcast);
                 }
@@ -45,25 +51,24 @@ fn main() -> std::io::Result<()> {
                 Some(Mode::Error(_)) | None => {}
             }
 
-            state.mode_activated = true;
+            ui_state.mode_activated = true;
         }
 
+        // Add user
         if let Ok(network_event) = event_rx.try_recv() {
             match network_event {
                 NetworkEvent::ClientConnected(ip) => {
-                    if !state.users_connected.iter().any(|user| user.ip == ip) {
-                        state.users_connected.push(ConnectedUser {
-                            ip,
-                            username: "anonymous".to_string(),
-                        });
-                    }
+                    server_state
+                        .users
+                        .entry(ip)
+                        .or_insert("placeholder".to_string());
                 }
                 NetworkEvent::ClientDisconnected(ip) => {}
                 NetworkEvent::ChatMessage { ip, message } => {}
                 NetworkEvent::Error(err) => {
-                    if state.in_chat {
-                        state.mode = Some(Mode::Error(err));
-                        state.error_occured = true;
+                    if ui_state.in_chat {
+                        ui_state.mode = Some(Mode::Error(err));
+                        ui_state.error_occured = true;
                     }
                 }
             }
@@ -71,55 +76,55 @@ fn main() -> std::io::Result<()> {
 
         terminal.draw(|frame| {
             frame.render_widget(
-                Block::new().style(Style::default().bg(state.theme.colors().background)),
+                Block::new().style(Style::default().bg(ui_state.theme.colors().background)),
                 frame.area(),
             );
 
-            let inner = border::draw_border(frame, &state);
+            let inner = border::draw_border(frame, &ui_state);
 
-            if state.in_home {
-                ui::home::draw_home(frame, inner, &state);
-            } else if state.in_submenu
-                && let Some(n) = state.home_hovered
+            if ui_state.in_home {
+                ui::home::draw_home(frame, inner, &ui_state);
+            } else if ui_state.in_submenu
+                && let Some(n) = ui_state.home_hovered
             {
                 match n {
-                    0 => modes_menu::draw_modes_menu(frame, inner, &state),
-                    1 => theme_menu::draw_theme_menu(frame, inner, &state),
-                    2 => installation_menu::draw_installation_menu(frame, inner, &state),
+                    0 => modes_menu::draw_modes_menu(frame, inner, &ui_state),
+                    1 => theme_menu::draw_theme_menu(frame, inner, &ui_state),
+                    2 => installation_menu::draw_installation_menu(frame, inner, &ui_state),
                     _ => {}
                 }
-            } else if state.in_chat
-                && let Some(mode) = &state.mode
+            } else if ui_state.in_chat
+                && let Some(mode) = &ui_state.mode
             {
                 match mode {
-                    Mode::Client => client::draw_client(frame, inner, &state),
-                    Mode::Host => host::draw_host(frame, inner, &state),
-                    Mode::Error(err) => error_page::draw_error_page(frame, inner, &state, *err),
+                    Mode::Client => client::draw_client(frame, inner, &ui_state, &server_state),
+                    Mode::Host => host::draw_host(frame, inner, &ui_state, &server_state),
+                    Mode::Error(err) => error_page::draw_error_page(frame, inner, &ui_state, *err),
                 }
             }
         })?;
 
         // In home menu
-        if state.in_home
+        if ui_state.in_home
             && event::poll(Duration::from_millis(16))?
             && let Event::Key(key_event) = event::read()?
         {
             match key_event.code {
                 KeyCode::Enter | KeyCode::Right => {
-                    state.home_selected = state.home_hovered;
+                    ui_state.home_selected = ui_state.home_hovered;
                 }
                 KeyCode::Up => {
-                    if let Some(n) = state.home_hovered
+                    if let Some(n) = ui_state.home_hovered
                         && n > 0
                     {
-                        state.home_hovered = Some(n - 1);
+                        ui_state.home_hovered = Some(n - 1);
                     }
                 }
                 KeyCode::Down => {
-                    if let Some(n) = state.home_hovered
+                    if let Some(n) = ui_state.home_hovered
                         && n < home::HOME_OPTIONS_MAX_INDEX
                     {
-                        state.home_hovered = Some(n + 1);
+                        ui_state.home_hovered = Some(n + 1);
                     }
                 }
 
@@ -128,123 +133,123 @@ fn main() -> std::io::Result<()> {
                 _ => {}
             }
 
-            if let Some(n) = state.home_selected.take() {
+            if let Some(n) = ui_state.home_selected.take() {
                 match n {
                     0 => {
-                        state.in_home = false;
-                        state.in_submenu = true;
-                        state.home_state = HomeItems::Modes;
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeItems::Modes;
                     }
                     1 => {
-                        state.in_home = false;
-                        state.in_submenu = true;
-                        state.home_state = HomeItems::Themes;
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeItems::Themes;
                     }
                     2 => {
-                        state.in_home = false;
-                        state.in_submenu = true;
-                        state.home_state = HomeItems::Project;
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeItems::Project;
                     }
                     3 => break,
                     _ => {}
                 }
             }
-        } else if state.in_submenu
+        } else if ui_state.in_submenu
             && event::poll(Duration::from_millis(16))?
             && let Event::Key(key_event) = event::read()?
         {
             // In submenu
             match key_event.code {
                 KeyCode::Enter => {
-                    if state.home_state == HomeItems::Modes {
-                        state.in_chat = true;
-                        state.submenu_selected = state.submenu_hovered;
+                    if ui_state.home_state == HomeItems::Modes {
+                        ui_state.in_chat = true;
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
                     } else {
-                        state.submenu_selected = state.submenu_hovered;
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
                     }
                 }
-                KeyCode::Right => match state.home_state {
+                KeyCode::Right => match ui_state.home_state {
                     HomeItems::Modes => {
-                        if let Some(n) = state.submenu_hovered
+                        if let Some(n) = ui_state.submenu_hovered
                             && n < modes_menu::MODE_OPTIONS_MAX_INDEX
                         {
-                            state.submenu_hovered = Some(n + 1);
+                            ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
                     HomeItems::Themes | HomeItems::Project => {
-                        state.submenu_selected = state.submenu_hovered;
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
                     }
                 },
-                KeyCode::Up => match state.home_state {
+                KeyCode::Up => match ui_state.home_state {
                     HomeItems::Modes => {
-                        if let Some(n) = state.submenu_hovered
+                        if let Some(n) = ui_state.submenu_hovered
                             && n > 0
                         {
-                            state.submenu_hovered = Some(n - 1);
+                            ui_state.submenu_hovered = Some(n - 1);
                         }
                     }
                     HomeItems::Themes => {
-                        if let Some(n) = state.submenu_hovered
+                        if let Some(n) = ui_state.submenu_hovered
                             && n > 0
                         {
-                            state.submenu_hovered = Some(n - 1);
+                            ui_state.submenu_hovered = Some(n - 1);
                         }
                     }
                     HomeItems::Project => {}
                 },
-                KeyCode::Down => match state.home_state {
+                KeyCode::Down => match ui_state.home_state {
                     HomeItems::Modes => {
-                        if let Some(n) = state.submenu_hovered
+                        if let Some(n) = ui_state.submenu_hovered
                             && n < modes_menu::MODE_OPTIONS_MAX_INDEX
                         {
-                            state.submenu_hovered = Some(n + 1);
+                            ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
                     HomeItems::Themes => {
-                        if let Some(n) = state.submenu_hovered
+                        if let Some(n) = ui_state.submenu_hovered
                             && n < theme_menu::THEME_OPTIONS_MAX_INDEX
                         {
-                            state.submenu_hovered = Some(n + 1);
+                            ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
                     HomeItems::Project => {}
                 },
                 KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
-                    state.in_home = true;
-                    state.in_submenu = false;
-                    state.submenu_hovered = Some(0);
-                    state.submenu_selected = None;
+                    ui_state.in_home = true;
+                    ui_state.in_submenu = false;
+                    ui_state.submenu_hovered = Some(0);
+                    ui_state.submenu_selected = None;
                 }
-                KeyCode::Left => match state.home_state {
+                KeyCode::Left => match ui_state.home_state {
                     HomeItems::Modes => {
-                        if let Some(n) = state.submenu_hovered
+                        if let Some(n) = ui_state.submenu_hovered
                             && n > 0
                         {
-                            state.submenu_hovered = Some(n - 1);
+                            ui_state.submenu_hovered = Some(n - 1);
                         }
                     }
                     HomeItems::Themes | HomeItems::Project => {
-                        state.in_home = true;
-                        state.in_submenu = false;
-                        state.submenu_hovered = Some(0);
-                        state.submenu_selected = None;
+                        ui_state.in_home = true;
+                        ui_state.in_submenu = false;
+                        ui_state.submenu_hovered = Some(0);
+                        ui_state.submenu_selected = None;
                     }
                 },
                 KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
             }
 
-            match state.home_state {
+            match ui_state.home_state {
                 HomeItems::Modes => {
-                    if let Some(n) = state.submenu_selected.take() {
+                    if let Some(n) = ui_state.submenu_selected.take() {
                         match n {
                             0 => {
-                                state.in_submenu = false;
-                                state.mode = Some(Mode::Client);
+                                ui_state.in_submenu = false;
+                                ui_state.mode = Some(Mode::Client);
                             }
                             1 => {
-                                state.in_submenu = false;
-                                state.mode = Some(Mode::Host);
+                                ui_state.in_submenu = false;
+                                ui_state.mode = Some(Mode::Host);
 
                                 let event_tx_clone = event_tx.clone();
                                 thread::spawn(move || {
@@ -260,22 +265,22 @@ fn main() -> std::io::Result<()> {
                     }
                 }
                 HomeItems::Themes => {
-                    if let Some(n) = state.submenu_selected.take() {
+                    if let Some(n) = ui_state.submenu_selected.take() {
                         match n {
-                            0 => state.theme = Theme::Dark,
-                            1 => state.theme = Theme::Light,
+                            0 => ui_state.theme = Theme::Dark,
+                            1 => ui_state.theme = Theme::Light,
                             _ => {}
                         }
                     }
                 }
                 HomeItems::Project => {}
             }
-        } else if state.in_chat
+        } else if ui_state.in_chat
             && event::poll(Duration::from_millis(16))?
             && let Event::Key(key_event) = event::read()?
         {
             // In chat
-            if state.error_occured {
+            if ui_state.error_occured {
                 match key_event.code {
                     _ => break,
                 }

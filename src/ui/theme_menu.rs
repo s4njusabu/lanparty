@@ -5,12 +5,12 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::app::state::State;
+use crate::app::ui_state::UiState;
 
 pub const THEME_OPTIONS_MAX_INDEX: usize = 1;
 
-pub fn draw_theme_menu(frame: &mut Frame, area: Rect, state: &State) {
-    let colors = state.theme.colors();
+pub fn draw_theme_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
+    let colors = ui_state.theme.colors();
 
     let [_, title, _, options, _] = Layout::vertical([
         Constraint::Percentage(10),
@@ -21,7 +21,7 @@ pub fn draw_theme_menu(frame: &mut Frame, area: Rect, state: &State) {
     ])
     .areas(area);
 
-    draw_banner(frame, title, state);
+    draw_banner(frame, title, ui_state);
 
     let [dark_row, light_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
         .spacing(1)
@@ -39,7 +39,7 @@ pub fn draw_theme_menu(frame: &mut Frame, area: Rect, state: &State) {
     let border_style = Style::default().fg(colors.accent);
 
     frame.render_widget(
-        Paragraph::new(if state.submenu_hovered == Some(0) {
+        Paragraph::new(if ui_state.submenu_hovered == Some(0) {
             "» Dark «"
         } else {
             "Dark"
@@ -54,7 +54,7 @@ pub fn draw_theme_menu(frame: &mut Frame, area: Rect, state: &State) {
         dark,
     );
     frame.render_widget(
-        Paragraph::new(if state.submenu_hovered == Some(1) {
+        Paragraph::new(if ui_state.submenu_hovered == Some(1) {
             "» Light «"
         } else {
             "Light"
@@ -70,9 +70,9 @@ pub fn draw_theme_menu(frame: &mut Frame, area: Rect, state: &State) {
     );
 }
 
-fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
+fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let banner = include_str!("../../assets/themes_banner.txt");
-    let colors = state.theme.colors();
+    let colors = ui_state.theme.colors();
 
     let banner_width = banner
         .lines()

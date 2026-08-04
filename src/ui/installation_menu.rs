@@ -5,10 +5,10 @@ use ratatui::{
     widgets::Paragraph,
 };
 
-use crate::app::state::State;
+use crate::app::ui_state::UiState;
 
-pub fn draw_installation_menu(frame: &mut Frame, area: Rect, state: &State) {
-    let colors = state.theme.colors();
+pub fn draw_installation_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
+    let colors = ui_state.theme.colors();
 
     let [_, title, _, content_area, _] = Layout::vertical([
         Constraint::Percentage(10),
@@ -19,7 +19,7 @@ pub fn draw_installation_menu(frame: &mut Frame, area: Rect, state: &State) {
     ])
     .areas(area);
 
-    draw_banner(frame, title, state);
+    draw_banner(frame, title, ui_state);
 
     let text_style = Style::default()
         .fg(colors.text)
@@ -38,9 +38,9 @@ pub fn draw_installation_menu(frame: &mut Frame, area: Rect, state: &State) {
     );
 }
 
-fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
+fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let banner = include_str!("../../assets/installation_banner.txt");
-    let colors = state.theme.colors();
+    let colors = ui_state.theme.colors();
 
     let banner_width = banner
         .lines()
