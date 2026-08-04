@@ -8,13 +8,13 @@ use ratatui::{
 
 use crate::{
     app::{
-        server_state::ServerState,
+        server_state::{ServerState, User},
         ui_state::{HomeItems, Mode, UiState},
     },
     services::{
         get_username::get_username,
         network::{
-            NetworkEvent, create_server, receive_udp_packets_from_broadcast,
+            NetworkEvent, accept_connections, receive_udp_packets_from_broadcast,
             send_udp_packets_to_broadcast,
         },
     },
@@ -57,14 +57,17 @@ fn main() -> std::io::Result<()> {
         // Add user
         if let Ok(network_event) = event_rx.try_recv() {
             match network_event {
-                NetworkEvent::ClientConnected(ip) => {
-                    server_state
-                        .users
-                        .entry(ip)
-                        .or_insert("placeholder".to_string());
+                NetworkEvent::ClientConnected(ip, username) => {
+                    server_state.users.entry(ip).or_insert(User {
+                        username,
+                        online: true,
+                    });
                 }
-                NetworkEvent::ClientDisconnected(ip) => {}
-                NetworkEvent::ChatMessage { ip, message } => {}
+                NetworkEvent::ClientDisconnected(ip) => {
+                    if let Some(user) = server_state.users.get_mut(&ip) {
+                        user.online = false;
+                    }
+                }
                 NetworkEvent::Error(err) => {
                     if ui_state.in_chat {
                         ui_state.mode = Some(Mode::Error(err));
@@ -253,7 +256,7 @@ fn main() -> std::io::Result<()> {
 
                                 let event_tx_clone = event_tx.clone();
                                 thread::spawn(move || {
-                                    if let Err(err) = create_server(event_tx_clone.clone()) {
+                                    if let Err(err) = accept_connections(event_tx_clone.clone()) {
                                         let _ =
                                             event_tx_clone.send(NetworkEvent::Error(err.kind()));
                                     }
