@@ -1,4 +1,5 @@
 use std::{
+    io::ErrorKind,
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     process::Command,
     sync::mpsc::Sender,
@@ -20,6 +21,7 @@ pub enum NetworkEvent {
     ClientConnected(IpAddr),
     ClientDisconnected(IpAddr),
     ChatMessage { ip: IpAddr, message: String },
+    Error(ErrorKind),
 }
 
 fn ip_command_exists() -> bool {
