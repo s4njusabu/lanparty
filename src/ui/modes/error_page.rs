@@ -34,19 +34,19 @@ pub fn draw_error_page(frame: &mut Frame, inner: Rect, state: &State, err: Error
     let text = Text::from(vec![
         Line::from("Unable to start the server").style(
             Style::default()
-                .fg(colors.accent)
+                .fg(colors.text)
                 .add_modifier(Modifier::BOLD),
         ),
         Line::from(""),
         Line::from(error).style(
             Style::default()
-                .fg(colors.accent)
+                .fg(colors.text)
                 .add_modifier(Modifier::BOLD),
         ),
         Line::from(""),
         Line::from("Press any key to exit").style(
             Style::default()
-                .fg(colors.accent)
+                .fg(colors.text)
                 .add_modifier(Modifier::BOLD),
         ),
     ]);
