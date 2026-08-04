@@ -1,6 +1,5 @@
 use std::{
-    fmt::Error,
-    io::{ErrorKind, Read},
+    io::{ErrorKind, Read, Write},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     process::Command,
     sync::mpsc::Sender,
@@ -11,7 +10,7 @@ use std::{
 const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
 const DISCOVERY_PORT: u16 = 55555;
 
-pub enum NetworkEvent {
+pub enum GetClientConnection {
     ClientConnected(IpAddr, String),
     ClientDisconnected(IpAddr),
     Error(ErrorKind),
@@ -114,34 +113,48 @@ pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
 }
 
 // host
-pub fn accept_connections(event_tx: Sender<NetworkEvent>) -> std::io::Result<()> {
+pub fn accept_connections(accept_conn_tx: Sender<GetClientConnection>) -> std::io::Result<()> {
     let (_, user_ip) = get_network_interface_and_user_ip()
         .ok_or(std::io::Error::other("Failed to get network interface"))?;
 
     let listener = TcpListener::bind(format!("{user_ip}:55555"))?;
-    let mut buf = [0u8; 1024];
 
     loop {
-        if let Ok((mut stream, addr)) = listener.accept() {
-            let n = stream.read(&mut buf)?;
+        let (mut stream, addr) = listener.accept()?;
+        let accept_conn_tx_clone = accept_conn_tx.clone();
 
+        thread::spawn(move || -> std::io::Result<()> {
+            let mut buf = [0u8; 1024];
+
+            let n = stream.read(&mut buf)?;
             if n > 0 {
                 let username = String::from_utf8_lossy(&buf[..n]).to_string();
-                event_tx
-                    .send(NetworkEvent::ClientConnected(addr.ip(), username))
-                    .map_err(|_| std::io::Error::other("Something went wrong"))?;
-            } else if n == 0 {
-                event_tx
-                    .send(NetworkEvent::ClientDisconnected(addr.ip()))
+                accept_conn_tx_clone
+                    .send(GetClientConnection::ClientConnected(addr.ip(), username))
                     .map_err(|_| std::io::Error::other("Something went wrong"))?;
             }
-        }
+            loop {
+                let n = stream.read(&mut buf)?;
+                if n == 0 {
+                    accept_conn_tx_clone
+                        .send(GetClientConnection::ClientDisconnected(addr.ip()))
+                        .map_err(|_| std::io::Error::other("Something went wrong"))?;
+                    break;
+                }
+            }
+            Ok(())
+        });
     }
 }
 
 // client
-fn connect_to_server() {
+pub fn connect_to_server(username: &str) {
     if let Some(server_ip) = receive_udp_packets_from_broadcast()
-        && let Ok(stream) = TcpStream::connect((server_ip, 55555))
-    {}
+        && let Ok(mut stream) = TcpStream::connect((server_ip, 55555))
+    {
+        let _ = stream.write_all(username.as_bytes());
+        loop {
+            thread::sleep(Duration::from_secs(1));
+        }
+    }
 }

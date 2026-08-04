@@ -14,8 +14,8 @@ use crate::{
     services::{
         get_username::get_username,
         network::{
-            NetworkEvent, accept_connections, receive_udp_packets_from_broadcast,
-            send_udp_packets_to_broadcast,
+            GetClientConnection, accept_connections, connect_to_server,
+            receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast,
         },
     },
     ui::{
@@ -36,8 +36,9 @@ fn main() -> std::io::Result<()> {
     let mut ui_state = UiState::new();
     let mut server_state = ServerState::new();
 
-    let (event_tx, event_rx) = mpsc::channel::<NetworkEvent>();
     ui_state.username = get_username();
+
+    let (accept_conn_tx, accept_conn_rx) = mpsc::channel::<GetClientConnection>();
 
     loop {
         if ui_state.in_chat && !ui_state.mode_activated {
@@ -55,20 +56,23 @@ fn main() -> std::io::Result<()> {
         }
 
         // Add user
-        if let Ok(network_event) = event_rx.try_recv() {
+        if let Ok(network_event) = accept_conn_rx.try_recv() {
             match network_event {
-                NetworkEvent::ClientConnected(ip, username) => {
-                    server_state.users.entry(ip).or_insert(User {
-                        username,
-                        online: true,
-                    });
+                GetClientConnection::ClientConnected(ip, username) => {
+                    server_state.users.insert(
+                        ip,
+                        User {
+                            username,
+                            online: true,
+                        },
+                    );
                 }
-                NetworkEvent::ClientDisconnected(ip) => {
+                GetClientConnection::ClientDisconnected(ip) => {
                     if let Some(user) = server_state.users.get_mut(&ip) {
                         user.online = false;
                     }
                 }
-                NetworkEvent::Error(err) => {
+                GetClientConnection::Error(err) => {
                     if ui_state.in_chat {
                         ui_state.mode = Some(Mode::Error(err));
                         ui_state.error_occured = true;
@@ -249,16 +253,21 @@ fn main() -> std::io::Result<()> {
                             0 => {
                                 ui_state.in_submenu = false;
                                 ui_state.mode = Some(Mode::Client);
+
+                                let username = ui_state.username.clone();
+                                thread::spawn(move || connect_to_server(&username));
                             }
                             1 => {
                                 ui_state.in_submenu = false;
                                 ui_state.mode = Some(Mode::Host);
 
-                                let event_tx_clone = event_tx.clone();
+                                let accept_conn_tx_clone = accept_conn_tx.clone();
                                 thread::spawn(move || {
-                                    if let Err(err) = accept_connections(event_tx_clone.clone()) {
-                                        let _ =
-                                            event_tx_clone.send(NetworkEvent::Error(err.kind()));
+                                    if let Err(err) =
+                                        accept_connections(accept_conn_tx_clone.clone())
+                                    {
+                                        let _ = accept_conn_tx_clone
+                                            .send(GetClientConnection::Error(err.kind()));
                                     }
                                 });
                             }
@@ -284,9 +293,7 @@ fn main() -> std::io::Result<()> {
         {
             // In chat
             if ui_state.error_occured {
-                match key_event.code {
-                    _ => break,
-                }
+                break;
             } else {
                 match key_event.code {
                     KeyCode::Char('q') | KeyCode::Esc => break,
