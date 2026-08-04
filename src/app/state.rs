@@ -28,6 +28,7 @@ pub struct State {
     pub submenu_selected: Option<usize>,
 }
 
+#[derive(PartialEq)]
 pub enum HomeItems {
     Modes,
     Themes,
@@ -36,7 +37,7 @@ pub enum HomeItems {
 
 pub enum Mode {
     Client,
-    Server,
+    Host,
 }
 
 impl State {

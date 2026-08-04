@@ -27,7 +27,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
         vertical: 1,
     });
 
-    let [server, client] =
+    let [client, host] =
         Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
             .spacing(3)
             .areas(content);
@@ -44,68 +44,8 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
         .fg(colors.text)
         .add_modifier(Modifier::BOLD);
 
-    let server_border = if state.submenu_hovered == Some(0) {
-        Style::default()
-            .fg(colors.selected)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(colors.accent)
-    };
-
-    frame.render_widget(
-        Block::bordered()
-            .title(" Server ")
-            .title_style(if state.submenu_hovered == Some(0) {
-                selected_title_style
-            } else {
-                normal_title_style
-            })
-            .border_type(BorderType::Double)
-            .border_style(server_border),
-        server,
-    );
-
-    let inner = server.inner(Margin {
-        horizontal: 2,
-        vertical: 1,
-    });
-
-    let [_, body, _, footer] = Layout::vertical([
-        Constraint::Percentage(18),
-        Constraint::Length(8),
-        Constraint::Min(0),
-        Constraint::Length(1),
-    ])
-    .areas(inner);
-
-    frame.render_widget(
-        Paragraph::new(format!(
-            "Host a server\n\n\nUsername: {}\n\n\nNote: This device will host the LAN session.",
-            state.username
-        ))
-        .alignment(Alignment::Center)
-        .style(text_style),
-        body,
-    );
-
-    frame.render_widget(
-        Paragraph::new(if state.submenu_hovered == Some(0) {
-            "● Selected ●"
-        } else {
-            "Press ← / →"
-        })
-        .alignment(Alignment::Center)
-        .style(if state.submenu_hovered == Some(0) {
-            Style::default()
-                .fg(colors.selected)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(colors.text)
-        }),
-        footer,
-    );
-
-    let client_border = if state.submenu_hovered == Some(1) {
+    // client
+    let client_border = if state.submenu_hovered == Some(0) {
         Style::default()
             .fg(colors.selected)
             .add_modifier(Modifier::BOLD)
@@ -116,7 +56,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
     frame.render_widget(
         Block::bordered()
             .title(" Client ")
-            .title_style(if state.submenu_hovered == Some(1) {
+            .title_style(if state.submenu_hovered == Some(0) {
                 selected_title_style
             } else {
                 normal_title_style
@@ -141,7 +81,69 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
 
     frame.render_widget(
         Paragraph::new(format!(
-            "Join a server\n\n\nUsername: {}\n\n\nNote: An active host is required.",
+            "Join a session\n\n\nUsername: {}\n\n\nNote: An active host is required.",
+            state.username
+        ))
+        .alignment(Alignment::Center)
+        .style(text_style),
+        body,
+    );
+
+    frame.render_widget(
+        Paragraph::new(if state.submenu_hovered == Some(0) {
+            "● Selected ●"
+        } else {
+            "Press ← / →"
+        })
+        .alignment(Alignment::Center)
+        .style(if state.submenu_hovered == Some(0) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(colors.text)
+        }),
+        footer,
+    );
+
+    // host
+    let host_border = if state.submenu_hovered == Some(1) {
+        Style::default()
+            .fg(colors.selected)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(colors.accent)
+    };
+
+    frame.render_widget(
+        Block::bordered()
+            .title(" Host ")
+            .title_style(if state.submenu_hovered == Some(1) {
+                selected_title_style
+            } else {
+                normal_title_style
+            })
+            .border_type(BorderType::Double)
+            .border_style(host_border),
+        host,
+    );
+
+    let inner = host.inner(Margin {
+        horizontal: 2,
+        vertical: 1,
+    });
+
+    let [_, body, _, footer] = Layout::vertical([
+        Constraint::Percentage(18),
+        Constraint::Length(8),
+        Constraint::Min(0),
+        Constraint::Length(1),
+    ])
+    .areas(inner);
+
+    frame.render_widget(
+        Paragraph::new(format!(
+            "Host a session\n\n\nUsername: {}\n\n\nNote: This device will host the session.",
             state.username
         ))
         .alignment(Alignment::Center)
@@ -166,6 +168,7 @@ pub fn draw_modes_menu(frame: &mut Frame, area: Rect, state: &State) {
         footer,
     );
 }
+
 fn draw_banner(frame: &mut Frame, area: Rect, state: &State) {
     let banner = include_str!("../../assets/modes_banner.txt");
     let colors = state.theme.colors();
