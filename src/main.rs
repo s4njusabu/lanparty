@@ -1,4 +1,4 @@
-use std::{sync::mpsc, thread, time::Duration};
+use std::{collections::HashMap, io::Write, net::IpAddr, sync::mpsc, thread, time::Duration};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -14,8 +14,8 @@ use crate::{
     services::{
         get_username::get_username,
         network::{
-            GetClientConnection, accept_connections, connect_to_server,
-            receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast,
+            GetClientConnection, MessageFlow, accept_connections, broadcast_users,
+            connect_to_server, receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast,
         },
     },
     ui::{
@@ -39,45 +39,66 @@ fn main() -> std::io::Result<()> {
     ui_state.username = get_username();
 
     let (accept_conn_tx, accept_conn_rx) = mpsc::channel::<GetClientConnection>();
+    let (accept_user_list_tx, accept_user_list_rx) = mpsc::channel::<HashMap<IpAddr, User>>();
 
     loop {
         if ui_state.in_chat && !ui_state.mode_activated {
-            match ui_state.mode {
-                Some(Mode::Client) => {
-                    thread::spawn(receive_udp_packets_from_broadcast);
-                }
+            match &ui_state.mode {
                 Some(Mode::Host) => {
                     thread::spawn(send_udp_packets_to_broadcast);
                 }
-                Some(Mode::Error(_)) | None => {}
+                Some(Mode::Client) | Some(Mode::Error(_)) | None => {}
             }
 
             ui_state.mode_activated = true;
         }
 
-        // Add user
-        if let Ok(network_event) = accept_conn_rx.try_recv() {
-            match network_event {
-                GetClientConnection::ClientConnected(ip, username) => {
-                    server_state.users.insert(
-                        ip,
-                        User {
-                            username,
-                            online: true,
-                        },
-                    );
-                }
-                GetClientConnection::ClientDisconnected(ip) => {
-                    if let Some(user) = server_state.users.get_mut(&ip) {
-                        user.online = false;
+        if let Some(mode) = &ui_state.mode {
+            match mode {
+                Mode::Host => {
+                    if let Ok(network_event) = accept_conn_rx.try_recv() {
+                        match network_event {
+                            GetClientConnection::ClientConnected(ip, stream, username) => {
+                                server_state.users.insert(
+                                    ip,
+                                    User {
+                                        username,
+                                        online: true,
+                                    },
+                                );
+
+                                server_state.connections.insert(ip, stream);
+
+                                broadcast_users(&mut server_state);
+                            }
+
+                            GetClientConnection::ClientDisconnected(ip) => {
+                                if let Some(user) = server_state.users.get_mut(&ip) {
+                                    user.online = false;
+                                }
+
+                                server_state.connections.remove(&ip);
+
+                                broadcast_users(&mut server_state);
+                            }
+
+                            GetClientConnection::Error(err) => {
+                                if ui_state.in_chat {
+                                    ui_state.mode = Some(Mode::Error(err));
+                                    ui_state.error_occured = true;
+                                }
+                            }
+                        }
                     }
                 }
-                GetClientConnection::Error(err) => {
-                    if ui_state.in_chat {
-                        ui_state.mode = Some(Mode::Error(err));
-                        ui_state.error_occured = true;
+
+                Mode::Client => {
+                    if let Ok(users) = accept_user_list_rx.try_recv() {
+                        server_state.users = users;
                     }
                 }
+
+                Mode::Error(_) => {}
             }
         }
 
@@ -255,7 +276,10 @@ fn main() -> std::io::Result<()> {
                                 ui_state.mode = Some(Mode::Client);
 
                                 let username = ui_state.username.clone();
-                                thread::spawn(move || connect_to_server(&username));
+                                let accept_user_list_tx_clone = accept_user_list_tx.clone();
+                                thread::spawn(move || {
+                                    connect_to_server(&username, accept_user_list_tx_clone)
+                                });
                             }
                             1 => {
                                 ui_state.in_submenu = false;
