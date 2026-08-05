@@ -31,7 +31,7 @@ fn ip_command_exists() -> bool {
         .is_ok_and(|output| output.status.success())
 }
 
-fn get_network_interface_and_user_ip() -> Option<(String, String)> {
+pub fn get_network_interface_and_user_ip() -> Option<(String, String)> {
     if let Ok(output) = Command::new("ip")
         .args(["route", "get", "8.8.8.8"])
         .output()

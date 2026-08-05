@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Write, net::IpAddr, sync::mpsc, thread, time::Duration};
+use std::{collections::HashMap, net::IpAddr, sync::mpsc, thread, time::Duration};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -14,8 +14,8 @@ use crate::{
     services::{
         get_username::get_username,
         network::{
-            GetClientConnection, MessageFlow, accept_connections, broadcast_users,
-            connect_to_server, receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast,
+            GetClientConnection, accept_connections, broadcast_users, connect_to_server,
+            get_network_interface_and_user_ip, send_udp_packets_to_broadcast,
         },
     },
     ui::{
@@ -46,6 +46,19 @@ fn main() -> std::io::Result<()> {
             match &ui_state.mode {
                 Some(Mode::Host) => {
                     thread::spawn(send_udp_packets_to_broadcast);
+
+                    if let Some((_, ip)) = get_network_interface_and_user_ip() {
+                        let host_ip: IpAddr = ip.parse().map_err(std::io::Error::other)?;
+
+                        let username = ui_state.username.clone();
+                        server_state.users.insert(
+                            host_ip,
+                            User {
+                                username,
+                                online: true,
+                            },
+                        );
+                    }
                 }
                 Some(Mode::Client) | Some(Mode::Error(_)) | None => {}
             }
