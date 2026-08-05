@@ -50,7 +50,7 @@ fn main() -> std::io::Result<()> {
                     if let Some((_, ip)) = get_network_interface_and_user_ip() {
                         let host_ip: IpAddr = ip.parse().map_err(std::io::Error::other)?;
 
-                        let username = ui_state.username.clone();
+                        let username = format!("{} [host]", ui_state.username.clone());
                         server_state.users.insert(
                             host_ip,
                             User {
