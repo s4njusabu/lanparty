@@ -1,5 +1,9 @@
 use ratatui::{
-    Frame, layout::{Constraint, Layout, Margin, Rect}, style::{Modifier, Style}, text::{Line, Span}, widgets::{Block, BorderType, Paragraph, Wrap},
+    Frame,
+    layout::{Constraint, Layout, Margin, Rect},
+    style::{Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Paragraph, Wrap},
 };
 
 use crate::app::{server_state::ServerState, ui_state::UiState};
