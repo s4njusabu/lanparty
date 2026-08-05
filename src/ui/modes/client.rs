@@ -22,7 +22,6 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
     let [messages_area, info_area] =
         Layout::horizontal([Constraint::Min(1), Constraint::Length(30)]).areas(chat_area);
 
-    // TODO: Build from server_state.messages
     let messages: Vec<Line> = vec![];
 
     let messages_block = Block::bordered()
@@ -48,7 +47,6 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
         }),
     );
 
-    // TODO: Build from server_state.users
     let mut online = Vec::new();
 
     for (ip, user) in &server_state.users {
@@ -114,7 +112,6 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
 
     frame.render_widget(input_block, input_area);
 
-    // TODO: Replace with actual input buffer
     frame.render_widget(
         Paragraph::new("")
             .style(Style::default().fg(colors.text))
