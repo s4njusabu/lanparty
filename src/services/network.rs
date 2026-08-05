@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     io::{ErrorKind, Read, Write},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     process::Command,
@@ -7,13 +8,20 @@ use std::{
     time::Duration,
 };
 
+use crate::app::server_state::{Message, ServerState, User};
+
 const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
 const DISCOVERY_PORT: u16 = 55555;
 
 pub enum GetClientConnection {
-    ClientConnected(IpAddr, String),
+    ClientConnected(IpAddr, TcpStream, String),
     ClientDisconnected(IpAddr),
     Error(ErrorKind),
+}
+
+pub enum MessageFlow {
+    SendToServer(String),
+    GetFromServer(Vec<Message>),
 }
 
 fn ip_command_exists() -> bool {
@@ -51,7 +59,7 @@ fn get_network_interface_and_user_ip() -> Option<(String, String)> {
     None
 }
 
-pub fn get_broadcast_addr(interface: &str) -> Option<String> {
+fn get_broadcast_addr(interface: &str) -> Option<String> {
     if let Ok(output) = Command::new("ip")
         .args(["address", "show", interface])
         .output()
@@ -112,6 +120,38 @@ pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
     }
 }
 
+/*
+
+pub struct ServerState {
+    pub users: HashMap<IpAddr, User>,
+    pub connections: HashMap<IpAddr, TcpStream>,
+    pub messages: Vec<Message>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct User {
+    pub username: String,
+    pub online: bool,
+}
+
+pub struct Message {
+    pub sender: IpAddr,
+    pub message: String,
+}
+
+pub enum GetClientConnection {
+    ClientConnected(IpAddr, TcpStream, String),
+    ClientDisconnected(IpAddr),
+    Error(ErrorKind),
+}
+
+pub enum MessageFlow {
+    SendToServer(String),
+    GetFromServer(Vec<Message>),
+}
+
+*/
+
 // host
 pub fn accept_connections(accept_conn_tx: Sender<GetClientConnection>) -> std::io::Result<()> {
     let (_, user_ip) = get_network_interface_and_user_ip()
@@ -128,9 +168,14 @@ pub fn accept_connections(accept_conn_tx: Sender<GetClientConnection>) -> std::i
 
             let n = stream.read(&mut buf)?;
             if n > 0 {
+                let stream_copy = stream.try_clone()?;
                 let username = String::from_utf8_lossy(&buf[..n]).to_string();
                 accept_conn_tx_clone
-                    .send(GetClientConnection::ClientConnected(addr.ip(), username))
+                    .send(GetClientConnection::ClientConnected(
+                        addr.ip(),
+                        stream_copy,
+                        username,
+                    ))
                     .map_err(|_| std::io::Error::other("Something went wrong"))?;
             }
             loop {
@@ -148,13 +193,49 @@ pub fn accept_connections(accept_conn_tx: Sender<GetClientConnection>) -> std::i
 }
 
 // client
-pub fn connect_to_server(username: &str) {
+pub fn connect_to_server(
+    username: &str,
+    accept_user_list_tx: Sender<HashMap<IpAddr, User>>,
+) -> std::io::Result<()> {
     if let Some(server_ip) = receive_udp_packets_from_broadcast()
         && let Ok(mut stream) = TcpStream::connect((server_ip, 55555))
     {
-        let _ = stream.write_all(username.as_bytes());
+        stream.write_all(username.as_bytes())?;
+
+        let mut buf = [0u8; 4096];
+
         loop {
-            thread::sleep(Duration::from_secs(1));
+            match stream.read(&mut buf) {
+                Ok(0) => break,
+
+                Ok(n) => {
+                    let (users, _): (HashMap<IpAddr, User>, usize) =
+                        bincode::serde::decode_from_slice(&buf[..n], bincode::config::standard())
+                            .map_err(std::io::Error::other)?;
+
+                    accept_user_list_tx
+                        .send(users)
+                        .map_err(|_| std::io::Error::other("channel closed"))?;
+                }
+
+                Err(err) => return Err(err),
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// broadcast_messages(&mut server_state) {
+
+// }
+
+pub fn broadcast_users(server_state: &mut ServerState) {
+    if let Ok(bytes) =
+        bincode::serde::encode_to_vec(&server_state.users, bincode::config::standard())
+    {
+        for stream in server_state.connections.values_mut() {
+            let _ = stream.write_all(&bytes);
         }
     }
 }

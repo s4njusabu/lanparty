@@ -1,9 +1,5 @@
 use ratatui::{
-    Frame,
-    layout::{Constraint, Layout, Margin, Rect},
-    style::{Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, BorderType, Paragraph, Wrap},
+    Frame, layout::{Constraint, Layout, Margin, Rect}, style::{Modifier, Style}, text::{Line, Span}, widgets::{Block, BorderType, Paragraph, Wrap},
 };
 
 use crate::app::{server_state::ServerState, ui_state::UiState};
@@ -22,105 +18,9 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
     let [messages_area, info_area] =
         Layout::horizontal([Constraint::Min(1), Constraint::Length(30)]).areas(chat_area);
 
-    let messages = vec![
-        Line::from(vec![
-            Span::styled(
-                "SilverFox",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(": Hey everyone.", Style::default().fg(colors.text)),
-        ]),
-        Line::default(),
-        Line::from(vec![
-            Span::styled(
-                "BlueOtter",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(": Hi.", Style::default().fg(colors.text)),
-        ]),
-        Line::default(),
-        Line::from(vec![
-            Span::styled(
-                "AmberWolf",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                ": This UI is looking really clean. Nice work!",
-                Style::default().fg(colors.text),
-            ),
-        ]),
-        Line::default(),
-        Line::from(vec![
-            Span::styled(
-                "NightOwl",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                ": Can't wait to test this.",
-                Style::default().fg(colors.text),
-            ),
-        ]),
-        Line::default(),
-        Line::from(vec![
-            Span::styled(
-                "CrimsonBear",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                ": Looks good from my machine.",
-                Style::default().fg(colors.text),
-            ),
-        ]),
-        Line::default(),
-        Line::from(vec![
-            Span::styled(
-                "SwiftHawk",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                ": Anyone hosting tonight?",
-                Style::default().fg(colors.text),
-            ),
-        ]),
-        Line::default(),
-        Line::from(vec![
-            Span::styled(
-                "IronPanda",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                ": I'll join in five minutes.",
-                Style::default().fg(colors.text),
-            ),
-        ]),
-        Line::default(),
-        Line::from(vec![
-            Span::styled(
-                "FrostLynx",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                ": Connected successfully!",
-                Style::default().fg(colors.text),
-            ),
-        ]),
-    ];
+    // TODO: Build from server_state.messages
+    let messages: Vec<Line> = vec![];
+
     let messages_block = Block::bordered()
         .title(
             Line::from(" Messages ").style(
@@ -144,95 +44,37 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
         }),
     );
 
-    let online = vec![
-        Line::from(vec![
-            Span::styled("● ", Style::default().fg(ratatui::style::Color::LightGreen)),
+    // TODO: Build from server_state.users
+    let mut online = Vec::new();
+
+    for (ip, user) in &server_state.users {
+        let status_color = if user.online {
+            ratatui::style::Color::LightGreen
+        } else {
+            ratatui::style::Color::LightRed
+        };
+
+        online.push(Line::from(vec![
+            Span::styled("● ", Style::default().fg(status_color)),
             Span::styled(
-                "Sanju",
+                &user.username,
                 Style::default()
                     .fg(colors.text)
                     .add_modifier(Modifier::BOLD),
             ),
-        ]),
-        Line::from(Span::styled(
-            "  192.168.1.12",
+        ]));
+
+        online.push(Line::from(Span::styled(
+            format!("  {ip}"),
             Style::default().fg(colors.text),
-        )),
-        Line::default(),
-        Line::from(vec![
-            Span::styled("● ", Style::default().fg(ratatui::style::Color::LightGreen)),
-            Span::styled(
-                "Alex",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
-        Line::from(Span::styled(
-            "  192.168.1.18",
-            Style::default().fg(colors.text),
-        )),
-        Line::default(),
-        Line::from(vec![
-            Span::styled("● ", Style::default().fg(ratatui::style::Color::LightGreen)),
-            Span::styled(
-                "Printer",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
-        Line::from(Span::styled(
-            "  192.168.1.25",
-            Style::default().fg(colors.text),
-        )),
-        Line::default(),
-        Line::from(vec![
-            Span::styled("● ", Style::default().fg(ratatui::style::Color::LightRed)),
-            Span::styled(
-                "SilverFox",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
-        Line::from(Span::styled(
-            "  192.168.1.31",
-            Style::default().fg(colors.text),
-        )),
-        Line::default(),
-        Line::from(vec![
-            Span::styled("● ", Style::default().fg(ratatui::style::Color::LightRed)),
-            Span::styled(
-                "BlueOtter",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
-        Line::from(Span::styled(
-            "  192.168.1.42",
-            Style::default().fg(colors.text),
-        )),
-        Line::default(),
-        Line::from(vec![
-            Span::styled("● ", Style::default().fg(ratatui::style::Color::LightRed)),
-            Span::styled(
-                "NightOwl",
-                Style::default()
-                    .fg(colors.text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
-        Line::from(Span::styled(
-            "  192.168.1.53",
-            Style::default().fg(colors.text),
-        )),
-    ];
+        )));
+
+        online.push(Line::default());
+    }
 
     let online_block = Block::bordered()
         .title(
-            Line::from(" Online ").style(
+            Line::from(" Users ").style(
                 Style::default()
                     .fg(colors.text)
                     .add_modifier(Modifier::BOLD),
@@ -252,6 +94,7 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
             vertical: 1,
         }),
     );
+
     let input_block = Block::bordered()
         .title(
             Line::from(" Input ").style(
@@ -267,8 +110,9 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
 
     frame.render_widget(input_block, input_area);
 
+    // TODO: Replace with actual input buffer
     frame.render_widget(
-        Paragraph::new("Lorem ipsum dolor sit amet, consectetur adipiscing elit.")
+        Paragraph::new("")
             .style(Style::default().fg(colors.text))
             .wrap(Wrap { trim: false }),
         input_inner.inner(Margin {
