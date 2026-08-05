@@ -96,7 +96,7 @@ pub fn send_udp_packets_to_broadcast() -> Option<()> {
     let destination = format!("{broadcast}:{DISCOVERY_PORT}");
 
     loop {
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_millis(250));
 
         socket.send_to(DISCOVERY_PACKET, &destination).ok()?;
     }
