@@ -67,11 +67,12 @@ fn get_broadcast_addr(interface: &str) -> Option<String> {
         let text = String::from_utf8_lossy(&output.stdout);
         for line in text.lines() {
             let mut words = line.split_whitespace();
-            while let Some(word) = words.next() {
-                if word == "inet" {
-                    words.next();
-                    if words.next() == Some("brd") {
-                        return words.next().map(str::to_string);
+            while let Some(w1) = words.next() {
+                if w1 == "inet" {
+                    while let Some(w2) = words.next() {
+                        if w2 == "brd" {
+                            return words.next().map(str::to_string);
+                        }
                     }
                 }
             }
