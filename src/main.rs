@@ -8,14 +8,14 @@ use ratatui::{
 
 use crate::{
     app::{
-        server_state::{ServerState, User},
+        server_state::{Message, ServerState, User},
         ui_state::{HomeItems, Mode, UiState},
     },
     services::{
         get_username::get_username,
         network::{
-            GetClientConnection, accept_connections, broadcast_users, connect_to_server,
-            get_network_interface_and_user_ip, send_udp_packets_to_broadcast,
+            GetClientConnection, accept_connections, broadcast_message, broadcast_users,
+            connect_to_server, get_network_interface_and_user_ip, send_udp_packets_to_broadcast,
         },
     },
     ui::{
@@ -96,6 +96,15 @@ fn main() -> std::io::Result<()> {
                                 broadcast_users(&mut server_state);
                             }
 
+                            GetClientConnection::Message(ip, message) => {
+                                server_state.messages.push(Message {
+                                    sender: ip,
+                                    message: message.clone(),
+                                });
+
+                                broadcast_message(&mut server_state, message);
+                            }
+
                             GetClientConnection::Error(err) => {
                                 if ui_state.in_chat {
                                     ui_state.mode = Some(Mode::Error(err));
@@ -110,12 +119,14 @@ fn main() -> std::io::Result<()> {
                     if let Ok(users) = accept_user_list_rx.try_recv() {
                         server_state.users = users;
                     }
+
+                    // You'll eventually have another receiver here for chat messages,
+                    // just like accept_user_list_rx.
                 }
 
                 Mode::Error(_) => {}
             }
         }
-
         terminal.draw(|frame| {
             frame.render_widget(
                 Block::new().style(Style::default().bg(ui_state.theme.colors().background)),
@@ -358,6 +369,7 @@ fn main() -> std::io::Result<()> {
 
                     KeyCode::Enter => {
                         if !ui_state.input.trim().is_empty() {
+                            ui_state.last_message = ui_state.input.clone();
                             let _ = send_message_tx.send(ui_state.input.clone());
                             ui_state.input.clear();
                         }

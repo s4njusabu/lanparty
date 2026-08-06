@@ -8,6 +8,8 @@ use std::{
     time::Duration,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::app::server_state::{Message, ServerState, User};
 
 const DISCOVERY_PACKET: &[u8] = b"LANPARTY";
@@ -16,6 +18,7 @@ const DISCOVERY_PORT: u16 = 55555;
 pub enum GetClientConnection {
     ClientConnected(IpAddr, TcpStream, String),
     ClientDisconnected(IpAddr),
+    Message(IpAddr, String),
     Error(ErrorKind),
 }
 
@@ -151,6 +154,11 @@ pub enum MessageFlow {
     GetFromServer(Vec<Message>),
 }
 
+pub enum Packet {
+UserList(HashMap<IpAddr, User>),
+Message(String),
+}
+
 */
 
 // host
@@ -165,32 +173,57 @@ pub fn accept_connections(accept_conn_tx: Sender<GetClientConnection>) -> std::i
         let accept_conn_tx_clone = accept_conn_tx.clone();
 
         thread::spawn(move || -> std::io::Result<()> {
-            let mut buf = [0u8; 1024];
+            let mut buf = [0u8; 4096];
 
+            // First packet is still the username
             let n = stream.read(&mut buf)?;
             if n > 0 {
                 let stream_copy = stream.try_clone()?;
                 let username = String::from_utf8_lossy(&buf[..n]).to_string();
+
                 accept_conn_tx_clone
                     .send(GetClientConnection::ClientConnected(
                         addr.ip(),
                         stream_copy,
                         username,
                     ))
-                    .map_err(|_| std::io::Error::other("Something went wrong"))?;
+                    .map_err(|_| std::io::Error::other("channel closed"))?;
             }
+
             loop {
                 let n = stream.read(&mut buf)?;
+
                 if n == 0 {
                     accept_conn_tx_clone
                         .send(GetClientConnection::ClientDisconnected(addr.ip()))
-                        .map_err(|_| std::io::Error::other("Something went wrong"))?;
+                        .map_err(|_| std::io::Error::other("channel closed"))?;
                     break;
                 }
+
+                let (packet, _): (Packet, usize) =
+                    bincode::serde::decode_from_slice(&buf[..n], bincode::config::standard())
+                        .map_err(std::io::Error::other)?;
+
+                match packet {
+                    Packet::Message(message) => {
+                        accept_conn_tx_clone
+                            .send(GetClientConnection::Message(addr.ip(), message))
+                            .map_err(|_| std::io::Error::other("channel closed"))?;
+                    }
+
+                    Packet::UserList(_) => {}
+                }
             }
+
             Ok(())
         });
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Packet {
+    UserList(HashMap<IpAddr, User>),
+    Message(String),
 }
 
 // client
@@ -210,13 +243,22 @@ pub fn connect_to_server(
                 Ok(0) => break,
 
                 Ok(n) => {
-                    let (users, _): (HashMap<IpAddr, User>, usize) =
+                    let (packet, _): (Packet, usize) =
                         bincode::serde::decode_from_slice(&buf[..n], bincode::config::standard())
                             .map_err(std::io::Error::other)?;
 
-                    accept_user_list_tx
-                        .send(users)
-                        .map_err(|_| std::io::Error::other("channel closed"))?;
+                    match packet {
+                        Packet::UserList(users) => {
+                            accept_user_list_tx
+                                .send(users)
+                                .map_err(|_| std::io::Error::other("channel closed"))?;
+                        }
+
+                        Packet::Message(message) => {
+                            // TODO:
+                            // send message to UI
+                        }
+                    }
                 }
 
                 Err(err) => return Err(err),
@@ -227,14 +269,20 @@ pub fn connect_to_server(
     Ok(())
 }
 
-// broadcast_messages(&mut server_state) {
-
-// }
-
 pub fn broadcast_users(server_state: &mut ServerState) {
-    if let Ok(bytes) =
-        bincode::serde::encode_to_vec(&server_state.users, bincode::config::standard())
-    {
+    let packet = Packet::UserList(server_state.users.clone());
+
+    if let Ok(bytes) = bincode::serde::encode_to_vec(&packet, bincode::config::standard()) {
+        for stream in server_state.connections.values_mut() {
+            let _ = stream.write_all(&bytes);
+        }
+    }
+}
+
+pub fn broadcast_message(server_state: &mut ServerState, message: String) {
+    let packet = Packet::Message(message);
+
+    if let Ok(bytes) = bincode::serde::encode_to_vec(&packet, bincode::config::standard()) {
         for stream in server_state.connections.values_mut() {
             let _ = stream.write_all(&bytes);
         }
