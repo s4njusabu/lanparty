@@ -14,8 +14,9 @@ use crate::{
     services::{
         get_username::get_username,
         network::{
-            GetClientConnection, accept_connections, broadcast_message, broadcast_users,
-            connect_to_server, get_network_interface_and_user_ip, send_udp_packets_to_broadcast,
+            ChatMessage, GetClientConnection, accept_connections, broadcast_message,
+            broadcast_users, connect_to_server, get_network_interface_and_user_ip,
+            send_udp_packets_to_broadcast,
         },
     },
     ui::{
@@ -39,10 +40,14 @@ fn main() -> std::io::Result<()> {
     ui_state.username = get_username();
 
     let (accept_conn_tx, accept_conn_rx) = mpsc::channel::<GetClientConnection>();
+
     let (accept_user_list_tx, accept_user_list_rx) = mpsc::channel::<HashMap<IpAddr, User>>();
-    let (send_message_tx, rx) = mpsc::channel::<String>();
-    let mut send_message_rx = Some(rx);
-    let (accept_message_tx, accept_message_rx) = mpsc::channel::<String>();
+
+    let (accept_message_tx, accept_message_rx) = mpsc::channel::<ChatMessage>();
+
+    let (send_message_tx, outgoing_message_rx) = mpsc::channel::<ChatMessage>();
+    let mut outgoing_message_receiver = Some(outgoing_message_rx);
+
     loop {
         if ui_state.in_chat && !ui_state.mode_activated {
             match &ui_state.mode {
@@ -97,13 +102,13 @@ fn main() -> std::io::Result<()> {
                                 broadcast_users(&mut server_state);
                             }
 
-                            GetClientConnection::Message(ip, message) => {
+                            GetClientConnection::Message(chat) => {
                                 server_state.messages.push(Message {
-                                    sender: ip,
-                                    message: message.clone(),
+                                    sender: chat.sender,
+                                    message: chat.message.clone(),
                                 });
 
-                                broadcast_message(&mut server_state, message);
+                                broadcast_message(&mut server_state, chat);
                             }
 
                             GetClientConnection::Error(err) => {
@@ -121,10 +126,10 @@ fn main() -> std::io::Result<()> {
                         server_state.users = users;
                     }
 
-                    if let Ok(message) = accept_message_rx.try_recv() {
+                    if let Ok(chat) = accept_message_rx.try_recv() {
                         server_state.messages.push(Message {
-                            sender: IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
-                            message,
+                            sender: chat.sender,
+                            message: chat.message,
                         });
                     }
                 }
@@ -309,14 +314,15 @@ fn main() -> std::io::Result<()> {
                                 let accept_user_list_tx_clone = accept_user_list_tx.clone();
                                 let accept_message_tx_clone = accept_message_tx.clone();
 
-                                let rx = send_message_rx.take().unwrap();
+                                let outgoing_message_receiver =
+                                    outgoing_message_receiver.take().unwrap();
 
                                 thread::spawn(move || {
                                     let _ = connect_to_server(
                                         &username,
                                         accept_user_list_tx_clone,
                                         accept_message_tx_clone,
-                                        rx,
+                                        outgoing_message_receiver,
                                     );
                                 });
                             }
@@ -383,8 +389,17 @@ fn main() -> std::io::Result<()> {
 
                     KeyCode::Enter => {
                         if !ui_state.input.trim().is_empty() {
+                            let (_, ip) = get_network_interface_and_user_ip().unwrap();
+                            let sender_ip: IpAddr = ip.parse().unwrap();
+
+                            let chat_message = ChatMessage {
+                                sender: sender_ip,
+                                message: ui_state.input.clone(),
+                            };
+
+                            let _ = send_message_tx.send(chat_message);
+
                             ui_state.last_message = ui_state.input.clone();
-                            let _ = send_message_tx.send(ui_state.input.clone());
                             ui_state.input.clear();
                         }
                     }
