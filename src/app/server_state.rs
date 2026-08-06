@@ -17,6 +17,7 @@ pub struct User {
     pub online: bool,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Message {
     pub sender: IpAddr,
     pub message: String,
