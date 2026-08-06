@@ -1,6 +1,6 @@
 [package]
 name = "lanparty"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "LAN communication and peer discovery."
 license = "MIT"
