@@ -387,21 +387,19 @@ fn main() -> std::io::Result<()> {
                         ui_state.input.pop();
                     }
 
-                    KeyCode::Enter => {
-                        if !ui_state.input.trim().is_empty() {
-                            let (_, ip) = get_network_interface_and_user_ip().unwrap();
-                            let sender_ip: IpAddr = ip.parse().unwrap();
+                    KeyCode::Enter if !ui_state.input.trim().is_empty() => {
+                        let (_, ip) = get_network_interface_and_user_ip().unwrap();
+                        let sender_ip: IpAddr = ip.parse().unwrap();
 
-                            let chat_message = ChatMessage {
-                                sender: sender_ip,
-                                message: ui_state.input.clone(),
-                            };
+                        let chat_message = ChatMessage {
+                            sender: sender_ip,
+                            message: ui_state.input.clone(),
+                        };
 
-                            let _ = send_message_tx.send(chat_message);
+                        let _ = send_message_tx.send(chat_message);
 
-                            ui_state.last_message = ui_state.input.clone();
-                            ui_state.input.clear();
-                        }
+                        ui_state.last_message = ui_state.input.clone();
+                        ui_state.input.clear();
                     }
                     _ => {}
                 }
