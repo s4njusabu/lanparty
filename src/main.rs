@@ -40,6 +40,7 @@ fn main() -> std::io::Result<()> {
 
     let (accept_conn_tx, accept_conn_rx) = mpsc::channel::<GetClientConnection>();
     let (accept_user_list_tx, accept_user_list_rx) = mpsc::channel::<HashMap<IpAddr, User>>();
+    let (send_message_tx, send_message_rx) = mpsc::channel::<String>();
 
     loop {
         if ui_state.in_chat && !ui_state.mode_activated {
@@ -332,10 +333,34 @@ fn main() -> std::io::Result<()> {
             if ui_state.error_occured {
                 break;
             } else {
+                // match key_event.code {
+                //     KeyCode::Char('q') | KeyCode::Esc => break,
+                //     KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {
+                //         break;
+                //     }
+                //     _ => {}
+                // }
+
                 match key_event.code {
-                    KeyCode::Char('q') | KeyCode::Esc => break,
                     KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {
                         break;
+                    }
+
+                    KeyCode::Esc => break,
+
+                    KeyCode::Char(c) => {
+                        ui_state.input.push(c);
+                    }
+
+                    KeyCode::Backspace => {
+                        ui_state.input.pop();
+                    }
+
+                    KeyCode::Enter => {
+                        if !ui_state.input.trim().is_empty() {
+                            let _ = send_message_tx.send(ui_state.input.clone());
+                            ui_state.input.clear();
+                        }
                     }
                     _ => {}
                 }
