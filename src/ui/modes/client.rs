@@ -22,7 +22,25 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
     let [messages_area, info_area] =
         Layout::horizontal([Constraint::Min(1), Constraint::Length(30)]).areas(chat_area);
 
-    let messages: Vec<Line> = vec![];
+    let mut messages = Vec::new();
+
+    for message in &server_state.messages {
+        let username = server_state
+            .users
+            .get(&message.sender)
+            .map_or("Unknown", |user| user.username.as_str());
+
+        messages.push(Line::from(vec![
+            Span::styled(
+                username,
+                Style::default()
+                    .fg(colors.accent)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(": ", Style::default().fg(colors.text)),
+            Span::styled(&message.message, Style::default().fg(colors.text)),
+        ]));
+    }
 
     let messages_block = Block::bordered()
         .title(

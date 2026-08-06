@@ -3,7 +3,7 @@ use std::{
     io::{ErrorKind, Read, Write},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
     process::Command,
-    sync::mpsc::Sender,
+    sync::mpsc::{Receiver, Sender},
     thread,
     time::Duration,
 };
@@ -225,20 +225,32 @@ pub enum Packet {
     UserList(HashMap<IpAddr, User>),
     Message(String),
 }
-
 // client
 pub fn connect_to_server(
     username: &str,
     accept_user_list_tx: Sender<HashMap<IpAddr, User>>,
+    accept_message_tx: Sender<String>,
+    send_message_rx: Receiver<String>,
 ) -> std::io::Result<()> {
     if let Some(server_ip) = receive_udp_packets_from_broadcast()
         && let Ok(mut stream) = TcpStream::connect((server_ip, 55555))
     {
+        stream.set_nonblocking(true)?;
+
         stream.write_all(username.as_bytes())?;
 
         let mut buf = [0u8; 4096];
 
         loop {
+            if let Ok(message) = send_message_rx.try_recv() {
+                let packet = Packet::Message(message);
+
+                let bytes = bincode::serde::encode_to_vec(&packet, bincode::config::standard())
+                    .map_err(std::io::Error::other)?;
+
+                stream.write_all(&bytes)?;
+            }
+
             match stream.read(&mut buf) {
                 Ok(0) => break,
 
@@ -255,14 +267,19 @@ pub fn connect_to_server(
                         }
 
                         Packet::Message(message) => {
-                            // TODO:
-                            // send message to UI
+                            accept_message_tx
+                                .send(message)
+                                .map_err(|_| std::io::Error::other("channel closed"))?;
                         }
                     }
                 }
 
+                Err(ref e) if e.kind() == ErrorKind::WouldBlock => {}
+
                 Err(err) => return Err(err),
             }
+
+            thread::sleep(Duration::from_millis(5));
         }
     }
 

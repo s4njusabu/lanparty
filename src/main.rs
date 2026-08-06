@@ -40,8 +40,9 @@ fn main() -> std::io::Result<()> {
 
     let (accept_conn_tx, accept_conn_rx) = mpsc::channel::<GetClientConnection>();
     let (accept_user_list_tx, accept_user_list_rx) = mpsc::channel::<HashMap<IpAddr, User>>();
-    let (send_message_tx, send_message_rx) = mpsc::channel::<String>();
-
+    let (send_message_tx, rx) = mpsc::channel::<String>();
+    let mut send_message_rx = Some(rx);
+    let (accept_message_tx, accept_message_rx) = mpsc::channel::<String>();
     loop {
         if ui_state.in_chat && !ui_state.mode_activated {
             match &ui_state.mode {
@@ -120,8 +121,12 @@ fn main() -> std::io::Result<()> {
                         server_state.users = users;
                     }
 
-                    // You'll eventually have another receiver here for chat messages,
-                    // just like accept_user_list_rx.
+                    if let Ok(message) = accept_message_rx.try_recv() {
+                        server_state.messages.push(Message {
+                            sender: IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
+                            message,
+                        });
+                    }
                 }
 
                 Mode::Error(_) => {}
@@ -302,8 +307,17 @@ fn main() -> std::io::Result<()> {
 
                                 let username = ui_state.username.clone();
                                 let accept_user_list_tx_clone = accept_user_list_tx.clone();
+                                let accept_message_tx_clone = accept_message_tx.clone();
+
+                                let rx = send_message_rx.take().unwrap();
+
                                 thread::spawn(move || {
-                                    connect_to_server(&username, accept_user_list_tx_clone)
+                                    let _ = connect_to_server(
+                                        &username,
+                                        accept_user_list_tx_clone,
+                                        accept_message_tx_clone,
+                                        rx,
+                                    );
                                 });
                             }
                             1 => {
