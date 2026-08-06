@@ -40,6 +40,7 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
             Span::styled(": ", Style::default().fg(colors.text)),
             Span::styled(&message.message, Style::default().fg(colors.text)),
         ]));
+        messages.push(Line::default());
     }
 
     let messages_block = Block::bordered()
