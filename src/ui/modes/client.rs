@@ -113,7 +113,7 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
     frame.render_widget(input_block, input_area);
 
     frame.render_widget(
-        Paragraph::new("")
+        Paragraph::new(ui_state.input.as_str())
             .style(Style::default().fg(colors.text))
             .wrap(Wrap { trim: false }),
         input_inner.inner(Margin {

@@ -20,6 +20,10 @@ pub struct UiState {
     pub submenu_hovered: Option<usize>,
     pub submenu_selected: Option<usize>,
     pub error_occured: bool,
+
+    pub input: String,
+
+    pub last_message: String,
 }
 
 #[derive(PartialEq)]
@@ -57,6 +61,9 @@ impl UiState {
             submenu_hovered: Some(0),
             submenu_selected: None,
             error_occured: false,
+
+            input: String::new(),
+            last_message: String::new(),
         }
     }
 }
