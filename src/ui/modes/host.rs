@@ -58,12 +58,20 @@ pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_stat
 
     frame.render_widget(messages_block, messages_area);
 
+    let messages_rect = messages_inner.inner(Margin {
+        horizontal: 3,
+        vertical: 1,
+    });
+
+    let total_lines = messages.len();
+    let visible_lines = messages_rect.height as usize;
+    let scroll = total_lines.saturating_sub(visible_lines) as u16;
+
     frame.render_widget(
-        Paragraph::new(messages).wrap(Wrap { trim: false }),
-        messages_inner.inner(Margin {
-            horizontal: 3,
-            vertical: 1,
-        }),
+        Paragraph::new(messages)
+            .wrap(Wrap { trim: false })
+            .scroll((scroll, 0)),
+        messages_rect,
     );
 
     let mut online = Vec::new();
