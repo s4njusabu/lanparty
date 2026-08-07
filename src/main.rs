@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::IpAddr, sync::mpsc, thread, time::Duration};
+use std::{collections::HashMap, io::ErrorKind, net::IpAddr, sync::mpsc, thread, time::Duration};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -20,8 +20,8 @@ use crate::{
         },
     },
     ui::{
-        border, home, installation_menu,
-        modes::{client, error_page, host},
+        border, error_page, home, installation_menu,
+        modes::{client, host},
         modes_menu, theme_menu,
         themes::Theme,
     },
@@ -54,18 +54,32 @@ fn main() -> std::io::Result<()> {
                 Some(Mode::Host) => {
                     thread::spawn(send_udp_packets_to_broadcast);
 
-                    if let Some((_, ip)) = get_network_interface_and_user_ip() {
-                        let host_ip: IpAddr = ip.parse().map_err(std::io::Error::other)?;
+                    let (_, ip) = match get_network_interface_and_user_ip() {
+                        Some(v) => v,
+                        None => {
+                            ui_state.mode = Some(Mode::Error(ErrorKind::AddrNotAvailable));
+                            ui_state.error_occured = true;
+                            continue;
+                        }
+                    };
 
-                        let username = format!("{} [host]", ui_state.username.clone());
-                        server_state.users.insert(
-                            host_ip,
-                            User {
-                                username,
-                                online: true,
-                            },
-                        );
-                    }
+                    let host_ip: IpAddr = match ip.parse() {
+                        Ok(ip) => ip,
+                        Err(_) => {
+                            ui_state.mode = Some(Mode::Error(ErrorKind::InvalidData));
+                            ui_state.error_occured = true;
+                            continue;
+                        }
+                    };
+
+                    let username = format!("{} [host]", ui_state.username.clone());
+                    server_state.users.insert(
+                        host_ip,
+                        User {
+                            username,
+                            online: true,
+                        },
+                    );
                 }
                 Some(Mode::Client) | Some(Mode::Error(_)) | None => {}
             }
@@ -380,9 +394,22 @@ fn main() -> std::io::Result<()> {
                     }
 
                     KeyCode::Enter if !ui_state.input.trim().is_empty() => {
-                        let (_, ip) = get_network_interface_and_user_ip().unwrap();
-                        let sender_ip: IpAddr = ip.parse().unwrap();
-
+                        let (_, ip) = match get_network_interface_and_user_ip() {
+                            Some(v) => v,
+                            None => {
+                                ui_state.mode = Some(Mode::Error(ErrorKind::AddrNotAvailable));
+                                ui_state.error_occured = true;
+                                continue;
+                            }
+                        };
+                        let sender_ip: IpAddr = match ip.parse() {
+                            Ok(ip) => ip,
+                            Err(_) => {
+                                ui_state.mode = Some(Mode::Error(ErrorKind::InvalidData));
+                                ui_state.error_occured = true;
+                                continue;
+                            }
+                        };
                         let chat_message = ChatMessage {
                             sender: sender_ip,
                             message: ui_state.input.clone(),
@@ -399,7 +426,11 @@ fn main() -> std::io::Result<()> {
                             }
 
                             Some(Mode::Client) => {
-                                let _ = send_message_tx.send(chat_message);
+                                if send_message_tx.send(chat_message).is_err() {
+                                    ui_state.mode = Some(Mode::Error(ErrorKind::BrokenPipe));
+                                    ui_state.error_occured = true;
+                                    continue;
+                                }
                             }
 
                             Some(Mode::Error(_)) | None => {}

@@ -28,6 +28,18 @@ pub fn draw_error_page(frame: &mut Frame, inner: Rect, ui_state: &UiState, err: 
     let error = match err {
         ErrorKind::AddrInUse => "Port 55555 is already in use",
         ErrorKind::PermissionDenied => "Permission denied",
+        ErrorKind::AddrNotAvailable => "No valid network interface found",
+        ErrorKind::ConnectionRefused => "Couldn't connect to the host",
+        ErrorKind::ConnectionReset => "Connection was lost",
+        ErrorKind::ConnectionAborted => "Connection was aborted",
+        ErrorKind::NotConnected => "Not connected to a server",
+        ErrorKind::TimedOut => "Connection timed out",
+        ErrorKind::BrokenPipe => "Connection was closed",
+        ErrorKind::HostUnreachable => "Host is unreachable",
+        ErrorKind::NetworkUnreachable => "Network is unreachable",
+        ErrorKind::InvalidData => "Received invalid data",
+        ErrorKind::InvalidInput => "Invalid input",
+        ErrorKind::NotFound => "Required resource not found",
         _ => "Something went wrong",
     };
 

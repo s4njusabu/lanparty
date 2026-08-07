@@ -91,42 +91,45 @@ fn get_broadcast_addr(interface: &str) -> Option<String> {
     None
 }
 
-pub fn send_udp_packets_to_broadcast() -> Option<()> {
+pub fn send_udp_packets_to_broadcast() -> std::io::Result<()> {
     if !ip_command_exists() {
-        return None;
+        return Err(std::io::Error::other("`ip` command not found"));
     }
 
-    let (interface, user_ip) = get_network_interface_and_user_ip()?;
-    let broadcast = get_broadcast_addr(&interface)?;
+    let (interface, user_ip) = get_network_interface_and_user_ip()
+        .ok_or(std::io::Error::other("Failed to get network interface"))?;
 
-    let socket = UdpSocket::bind(format!("{user_ip}:0")).ok()?;
-    socket.set_broadcast(true).ok()?;
+    let broadcast = get_broadcast_addr(&interface)
+        .ok_or(std::io::Error::other("Failed to get broadcast address"))?;
+
+    let socket = UdpSocket::bind(format!("{user_ip}:0"))?;
+
+    socket.set_broadcast(true)?;
 
     let destination = format!("{broadcast}:{DISCOVERY_PORT}");
 
     loop {
         thread::sleep(Duration::from_millis(250));
 
-        socket.send_to(DISCOVERY_PACKET, &destination).ok()?;
+        socket.send_to(DISCOVERY_PACKET, &destination)?;
     }
 }
 
-pub fn receive_udp_packets_from_broadcast() -> Option<IpAddr> {
+pub fn receive_udp_packets_from_broadcast() -> std::io::Result<IpAddr> {
     if !ip_command_exists() {
-        return None;
+        return Err(std::io::Error::other("`ip` command not found"));
     }
 
-    let socket = UdpSocket::bind(format!("0.0.0.0:{DISCOVERY_PORT}")).ok()?;
+    let socket = UdpSocket::bind(format!("0.0.0.0:{DISCOVERY_PORT}"))?;
     let mut buf = [0u8; 1024];
 
     loop {
-        let (n, sender) = socket.recv_from(&mut buf).ok()?;
-
+        let (n, sender) = socket.recv_from(&mut buf)?;
         if &buf[..n] != DISCOVERY_PACKET {
             continue;
         }
 
-        return Some(sender.ip());
+        return Ok(sender.ip());
     }
 }
 
@@ -232,55 +235,53 @@ pub fn connect_to_server(
     accept_message_tx: Sender<ChatMessage>,
     outgoing_message_rx: Receiver<ChatMessage>,
 ) -> std::io::Result<()> {
-    if let Some(server_ip) = receive_udp_packets_from_broadcast()
-        && let Ok(mut stream) = TcpStream::connect((server_ip, 55555))
-    {
-        stream.set_nonblocking(true)?;
+    let server_ip = receive_udp_packets_from_broadcast()?;
+    let mut stream = TcpStream::connect((server_ip, 55555))?;
 
-        stream.write_all(username.as_bytes())?;
+    stream.set_nonblocking(true)?;
+    stream.write_all(username.as_bytes())?;
 
-        let mut buf = [0u8; 4096];
+    let mut buf = [0u8; 4096];
 
-        loop {
-            if let Ok(chat_message) = outgoing_message_rx.try_recv() {
-                let packet = Packet::Message(chat_message);
+    loop {
+        if let Ok(chat_message) = outgoing_message_rx.try_recv() {
+            let packet = Packet::Message(chat_message);
 
-                let bytes = bincode::serde::encode_to_vec(&packet, bincode::config::standard())
-                    .map_err(std::io::Error::other)?;
+            let bytes = bincode::serde::encode_to_vec(&packet, bincode::config::standard())
+                .map_err(std::io::Error::other)?;
 
-                stream.write_all(&bytes)?;
-            }
+            stream.write_all(&bytes)?;
+        }
 
-            match stream.read(&mut buf) {
-                Ok(0) => break,
+        match stream.read(&mut buf) {
+            Ok(0) => break,
 
-                Ok(n) => {
-                    let (packet, _): (Packet, usize) =
-                        bincode::serde::decode_from_slice(&buf[..n], bincode::config::standard())
-                            .map_err(std::io::Error::other)?;
+            Ok(n) => {
+                let (packet, _): (Packet, usize) =
+                    bincode::serde::decode_from_slice(&buf[..n], bincode::config::standard())
+                        .map_err(std::io::Error::other)?;
 
-                    match packet {
-                        Packet::UserList(users) => {
-                            accept_user_list_tx
-                                .send(users)
-                                .map_err(|_| std::io::Error::other("channel closed"))?;
-                        }
+                match packet {
+                    Packet::UserList(users) => {
+                        accept_user_list_tx
+                            .send(users)
+                            .map_err(|_| std::io::Error::other("channel closed"))?;
+                    }
 
-                        Packet::Message(chat_message) => {
-                            accept_message_tx
-                                .send(chat_message)
-                                .map_err(|_| std::io::Error::other("channel closed"))?;
-                        }
+                    Packet::Message(chat_message) => {
+                        accept_message_tx
+                            .send(chat_message)
+                            .map_err(|_| std::io::Error::other("channel closed"))?;
                     }
                 }
-
-                Err(ref err) if err.kind() == ErrorKind::WouldBlock => {}
-
-                Err(err) => return Err(err),
             }
 
-            thread::sleep(Duration::from_millis(5));
+            Err(ref err) if err.kind() == ErrorKind::WouldBlock => {}
+
+            Err(err) => return Err(err),
         }
+
+        thread::sleep(Duration::from_millis(5));
     }
 
     Ok(())
