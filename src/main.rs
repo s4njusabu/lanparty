@@ -388,7 +388,22 @@ fn main() -> std::io::Result<()> {
                             message: ui_state.input.clone(),
                         };
 
-                        let _ = send_message_tx.send(chat_message);
+                        match ui_state.mode {
+                            Some(Mode::Host) => {
+                                server_state.messages.push(Message {
+                                    sender: chat_message.sender,
+                                    message: chat_message.message.clone(),
+                                });
+
+                                broadcast_message(&mut server_state, chat_message);
+                            }
+
+                            Some(Mode::Client) => {
+                                let _ = send_message_tx.send(chat_message);
+                            }
+
+                            Some(Mode::Error(_)) | None => {}
+                        }
 
                         ui_state.last_message = ui_state.input.clone();
                         ui_state.input.clear();
