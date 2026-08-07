@@ -364,14 +364,6 @@ fn main() -> std::io::Result<()> {
             if ui_state.error_occured {
                 break;
             } else {
-                // match key_event.code {
-                //     KeyCode::Char('q') | KeyCode::Esc => break,
-                //     KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {
-                //         break;
-                //     }
-                //     _ => {}
-                // }
-
                 match key_event.code {
                     KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => {
                         break;
