@@ -44,7 +44,7 @@ pub fn draw_error_page(frame: &mut Frame, inner: Rect, ui_state: &UiState, err: 
     };
 
     let text = Text::from(vec![
-        Line::from("Unable to start the server").style(
+        Line::from("Unable to continue").style(
             Style::default()
                 .fg(colors.text)
                 .add_modifier(Modifier::BOLD),
