@@ -72,7 +72,7 @@ fn main() -> std::io::Result<()> {
                         }
                     };
 
-                    let username = format!("{} [host]", ui_state.username.clone());
+                    let username = format!("{} [host]", ui_state.username);
                     server_state.users.insert(
                         host_ip,
                         User {

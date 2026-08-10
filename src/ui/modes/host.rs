@@ -126,7 +126,7 @@ pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_stat
 
     let input_block = Block::bordered()
         .title(
-            Line::from(" Input ").style(
+            Line::from(format!(" Input - {} ", ui_state.username)).style(
                 Style::default()
                     .fg(colors.text)
                     .add_modifier(Modifier::BOLD),
