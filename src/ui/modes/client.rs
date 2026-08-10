@@ -74,7 +74,7 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
         messages_rect,
     );
 
-    let mut online = Vec::new();
+    let mut users = Vec::new();
 
     for (ip, user) in &server_state.users {
         let status_color = if user.online {
@@ -83,7 +83,7 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
             ratatui::style::Color::LightRed
         };
 
-        online.push(Line::from(vec![
+        users.push(Line::from(vec![
             Span::styled("● ", Style::default().fg(status_color)),
             Span::styled(
                 &user.username,
@@ -93,15 +93,15 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
             ),
         ]));
 
-        online.push(Line::from(Span::styled(
+        users.push(Line::from(Span::styled(
             format!("  {ip}"),
             Style::default().fg(colors.text),
         )));
 
-        online.push(Line::default());
+        users.push(Line::default());
     }
 
-    let online_block = Block::bordered()
+    let users_block = Block::bordered()
         .title(
             Line::from(" Users ").style(
                 Style::default()
@@ -112,13 +112,13 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState, server_st
         .border_type(BorderType::Thick)
         .border_style(Style::default().fg(colors.accent));
 
-    let online_inner = online_block.inner(info_area);
+    let users_inner = users_block.inner(info_area);
 
-    frame.render_widget(online_block, info_area);
+    frame.render_widget(users_block, info_area);
 
     frame.render_widget(
-        Paragraph::new(online),
-        online_inner.inner(Margin {
+        Paragraph::new(users),
+        users_inner.inner(Margin {
             horizontal: 2,
             vertical: 1,
         }),
