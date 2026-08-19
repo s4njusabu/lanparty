@@ -2,7 +2,7 @@
 name = "lanparty"
 version = "0.1.12"
 edition = "2024"
-description = "LAN communication and peer discovery."
+description = "LAN communication"
 license = "MIT"
 repository = "https://github.com/s4njusabu/lanparty"
 readme = "README.md"
