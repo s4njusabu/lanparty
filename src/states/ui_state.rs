@@ -21,7 +21,7 @@ pub struct UiState {
     // submenu state
     pub submenu_hovered: Option<usize>,
     pub submenu_selected: Option<usize>,
-    
+
     // things that may change
     pub error_occured: bool,
     pub input: String,
@@ -34,9 +34,8 @@ pub enum HomeOptions {
     GroupChat,
     FileTransfer,
     Profile,
-    Themes
+    Themes,
 }
-
 
 pub enum GroupChatMode {
     Client,

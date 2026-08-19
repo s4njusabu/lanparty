@@ -1,10 +1,10 @@
 #![allow(unused)]
 use crate::services::username;
 
-mod states;
 mod services;
-mod ui;
+mod states;
 pub mod themes;
+mod ui;
 
 fn main() {
     let terminal = ratatui::init();
