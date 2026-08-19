@@ -1,0 +1,4 @@
+banner.txt: name
+installation_banner.txt: name
+modes_banner.txt: name
+themes_banner.txt: name
