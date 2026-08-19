@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::services::username;
 
 mod states;
@@ -14,5 +15,8 @@ fn main() {
     // }
 
     ratatui::restore();
+    println!("{username}");
+    username = "sanjusabu".to_string();
+    println!("{username}");
     println!("Bye from LAN Party!");
 }
