@@ -23,46 +23,63 @@ pub fn draw_file_transfer_menu(frame: &mut Frame, area: Rect, ui_state: &UiState
 
     draw_banner(frame, title, ui_state);
 
-    let [send_row, receive_row, back_row] = Layout::vertical([
-        Constraint::Length(3),
-        Constraint::Length(3),
-        Constraint::Length(3),
+    let [send_area, receive_area, back_area] = Layout::vertical([
+        Constraint::Length(5),
+        Constraint::Length(5),
+        Constraint::Length(5),
     ])
     .spacing(1)
     .areas(options);
 
+    let [send, send_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(send_area);
+
+    let [receive, receive_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(receive_area);
+
+    let [back, back_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(back_area);
+
     let [send] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(send_row);
+        .areas(send);
 
     let [receive] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(receive_row);
+        .areas(receive);
 
     let [back] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(back_row);
+        .areas(back);
 
     let text_style = Style::default()
         .fg(colors.text)
         .add_modifier(Modifier::BOLD);
 
+    let description_style = Style::default().fg(colors.text);
+
     let border_style = Style::default().fg(colors.accent);
 
-    // Send a file
-    let block = Block::bordered()
+    // Send
+    let send_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(border_style);
+        .border_style(if ui_state.submenu_hovered == Some(0) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
 
-    frame.render_widget(block.clone(), send);
+    frame.render_widget(send_block.clone(), send);
 
-    let inner = block.inner(send);
+    let send_inner = send_block.inner(send);
 
     frame.render_widget(
         Paragraph::new("Send a file")
             .style(text_style)
             .alignment(Alignment::Center),
-        inner,
+        send_inner,
     );
 
     if ui_state.submenu_hovered == Some(0) {
@@ -70,30 +87,44 @@ pub fn draw_file_transfer_menu(frame: &mut Frame, area: Rect, ui_state: &UiState
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            inner,
+            send_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            inner,
+            send_inner,
         );
     }
 
-    let block = Block::bordered()
+    frame.render_widget(
+        Paragraph::new("Send a file to another device")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        send_description,
+    );
+
+    // Receive
+    let receive_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(border_style);
+        .border_style(if ui_state.submenu_hovered == Some(1) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
 
-    frame.render_widget(block.clone(), receive);
+    frame.render_widget(receive_block.clone(), receive);
 
-    let inner = block.inner(receive);
+    let receive_inner = receive_block.inner(receive);
 
     frame.render_widget(
         Paragraph::new("Receive file")
             .style(text_style)
             .alignment(Alignment::Center),
-        inner,
+        receive_inner,
     );
 
     if ui_state.submenu_hovered == Some(1) {
@@ -101,30 +132,44 @@ pub fn draw_file_transfer_menu(frame: &mut Frame, area: Rect, ui_state: &UiState
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            inner,
+            receive_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            inner,
+            receive_inner,
         );
     }
 
-    let block = Block::bordered()
+    frame.render_widget(
+        Paragraph::new("Receive a file from another device")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        receive_description,
+    );
+
+    // Back
+    let back_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(border_style);
+        .border_style(if ui_state.submenu_hovered == Some(2) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
 
-    frame.render_widget(block.clone(), back);
+    frame.render_widget(back_block.clone(), back);
 
-    let inner = block.inner(back);
+    let back_inner = back_block.inner(back);
 
     frame.render_widget(
         Paragraph::new("Back")
             .style(text_style)
             .alignment(Alignment::Center),
-        inner,
+        back_inner,
     );
 
     if ui_state.submenu_hovered == Some(2) {
@@ -132,18 +177,24 @@ pub fn draw_file_transfer_menu(frame: &mut Frame, area: Rect, ui_state: &UiState
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            inner,
+            back_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            inner,
+            back_inner,
         );
     }
-}
 
+    frame.render_widget(
+        Paragraph::new("Return to the previous menu")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        back_description,
+    );
+}
 fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let banner = include_str!("../../assets/file_transfer_banner.txt");
     let colors = ui_state.theme.colors();
