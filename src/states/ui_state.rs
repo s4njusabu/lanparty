@@ -6,7 +6,7 @@ pub struct UiState {
 
     pub in_home: bool,
     pub in_submenu: bool,
-    pub in_chat: bool,
+    pub in_chat: Option<InChat>,
 
     pub home_state: HomeOptions,
 
@@ -37,6 +37,11 @@ pub enum HomeOptions {
     Themes,
 }
 
+pub enum InChat {
+    Private,
+    Group,
+}
+
 pub enum GroupChatMode {
     Client,
     Host,
@@ -51,7 +56,7 @@ impl UiState {
 
             in_home: true,
             in_submenu: false,
-            in_chat: false,
+            in_chat: None,
 
             home_state: HomeOptions::PrivateChat,
 

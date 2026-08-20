@@ -1,14 +1,23 @@
 #![allow(unused)]
-use ratatui::{style::Style, widgets::Block};
+use std::time::Duration;
 
-use crate::{states::ui_state::UiState, ui::border};
+use ratatui::{
+    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    style::Style,
+    widgets::Block,
+};
+
+use crate::{
+    states::ui_state::{HomeOptions, InChat, UiState},
+    ui::{border, group_chat_menu, home, theme_menu},
+};
 
 mod services;
 mod states;
 pub mod themes;
 mod ui;
 
-fn main() {
+fn main() -> std::io::Result<()> {
     let mut terminal = ratatui::init();
 
     let mut ui_state = UiState::new();
@@ -23,10 +32,128 @@ fn main() {
 
             if ui_state.in_home {
                 ui::home::draw_home(frame, inner, &ui_state);
+            } else if ui_state.in_submenu {
             }
         });
+
+        // In home menu
+        if ui_state.in_home
+            && event::poll(Duration::from_millis(16))?
+            && let Event::Key(key_event) = event::read()?
+        {
+            match key_event.code {
+                KeyCode::Enter | KeyCode::Right => ui_state.home_selected = ui_state.home_hovered,
+                KeyCode::Up => {
+                    if let Some(n) = ui_state.home_hovered
+                        && n > 0
+                    {
+                        ui_state.home_hovered = Some(n - 1);
+                    }
+                }
+                KeyCode::Down => {
+                    if let Some(n) = ui_state.home_hovered
+                        && n < home::HOME_OPTIONS_MAX_INDEX
+                    {
+                        ui_state.home_hovered = Some(n + 1);
+                    }
+                }
+
+                KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
+                _ => {}
+            }
+            if let Some(n) = ui_state.home_selected.take() {
+                match n {
+                    0 => {
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeOptions::PrivateChat;
+                    }
+                    1 => {
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeOptions::GroupChat;
+                    }
+                    2 => {
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeOptions::FileTransfer;
+                    }
+                    3 => {
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeOptions::Profile;
+                    }
+                    4 => {
+                        ui_state.in_home = false;
+                        ui_state.in_submenu = true;
+                        ui_state.home_state = HomeOptions::Themes;
+                    }
+                    5 => break,
+                    _ => {}
+                }
+            }
+        } else if ui_state.in_submenu
+            && event::poll(Duration::from_millis(16))?
+            && let Event::Key(key_event) = event::read()?
+        {
+            // In submenu
+            match key_event.code {
+                KeyCode::Enter => {
+                    if ui_state.home_state == HomeOptions::PrivateChat {
+                        ui_state.in_chat = Some(InChat::Private);
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
+                    } else if ui_state.home_state == HomeOptions::GroupChat {
+                        ui_state.in_chat = Some(InChat::Group);
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
+                    } else {
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
+                    }
+                }
+                KeyCode::Left => {
+                    ui_state.in_home = true;
+                    ui_state.in_submenu = false;
+                    ui_state.submenu_hovered = Some(0);
+                    ui_state.submenu_selected = None;
+                }
+                KeyCode::Right => ui_state.submenu_selected = ui_state.submenu_hovered,
+                KeyCode::Up => {
+                    if let Some(n) = ui_state.submenu_hovered
+                        && n > 0
+                    {
+                        ui_state.submenu_hovered = Some(n - 1)
+                    }
+                }
+                KeyCode::Down => match ui_state.home_state {
+                    HomeOptions::GroupChat => {
+                        if let Some(n) = ui_state.submenu_hovered
+                            && n < group_chat_menu::MODE_OPTIONS_MAX_INDEX
+                        {
+                            ui_state.submenu_hovered = Some(n + 1);
+                        }
+                    }
+                    HomeOptions::Themes => {
+                        if let Some(n) = ui_state.submenu_hovered
+                            && n < theme_menu::THEME_OPTIONS_MAX_INDEX
+                        {
+                            ui_state.submenu_hovered = Some(n + 1);
+                        }
+                    }
+                    _ => {}
+                },
+                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                    ui_state.in_home = true;
+                    ui_state.in_submenu = false;
+                    ui_state.submenu_hovered = Some(0);
+                    ui_state.submenu_selected = None;
+                }
+                KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
+                _ => {}
+            }
+        }
     }
 
     ratatui::restore();
     println!("Bye from LAN Party!");
+    Ok(())
 }
