@@ -7,7 +7,7 @@ use ratatui::{
 
 use crate::states::ui_state::UiState;
 
-pub const GROUP_CHAT_MODES_MAX_INDEX: usize = 1;
+pub const GROUP_CHAT_MODES_MAX_INDEX: usize = 2;
 
 pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let colors = ui_state.theme.colors();
@@ -23,83 +23,177 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
 
     draw_banner(frame, title, ui_state);
 
-    let [client_row, host_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
-        .spacing(1)
-        .areas(options);
+    let [client_area, host_area, back_area] = Layout::vertical([
+        Constraint::Length(5),
+        Constraint::Length(5),
+        Constraint::Length(5),
+    ])
+    .spacing(1)
+    .areas(options);
+
+    let [client, client_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(client_area);
+
+    let [host, host_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(host_area);
+
+    let [back, back_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(back_area);
 
     let [client] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(client_row);
+        .areas(client);
 
     let [host] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(host_row);
+        .areas(host);
+
+    let [back] = Layout::horizontal([Constraint::Length(22)])
+        .flex(Flex::Center)
+        .areas(back);
 
     let text_style = Style::default()
         .fg(colors.text)
         .add_modifier(Modifier::BOLD);
 
+    let description_style = Style::default().fg(colors.text);
+
     let border_style = Style::default().fg(colors.accent);
 
-    let block = Block::bordered()
+    // Client
+    let client_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(border_style);
+        .border_style(if ui_state.submenu_hovered == Some(0) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
+
+    frame.render_widget(client_block.clone(), client);
+
+    let client_inner = client_block.inner(client);
 
     frame.render_widget(
         Paragraph::new("Client")
             .style(text_style)
-            .alignment(Alignment::Center)
-            .block(block.clone()),
-        client,
+            .alignment(Alignment::Center),
+        client_inner,
     );
 
     if ui_state.submenu_hovered == Some(0) {
-        let inner = block.inner(client);
-
         frame.render_widget(
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            inner,
+            client_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            inner,
+            client_inner,
         );
     }
 
-    let block = Block::bordered()
+    frame.render_widget(
+        Paragraph::new("Join an existing group chat")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        client_description,
+    );
+
+    // Host
+    let host_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(border_style);
+        .border_style(if ui_state.submenu_hovered == Some(1) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
+
+    frame.render_widget(host_block.clone(), host);
+
+    let host_inner = host_block.inner(host);
 
     frame.render_widget(
         Paragraph::new("Host")
             .style(text_style)
-            .alignment(Alignment::Center)
-            .block(block.clone()),
-        host,
+            .alignment(Alignment::Center),
+        host_inner,
     );
 
     if ui_state.submenu_hovered == Some(1) {
-        let inner = block.inner(host);
-
         frame.render_widget(
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            inner,
+            host_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            inner,
+            host_inner,
         );
     }
+
+    frame.render_widget(
+        Paragraph::new("Create a new group chat for others to join")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        host_description,
+    );
+
+    // Back
+    let back_block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(if ui_state.submenu_hovered == Some(2) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
+
+    frame.render_widget(back_block.clone(), back);
+
+    let back_inner = back_block.inner(back);
+
+    frame.render_widget(
+        Paragraph::new("Back")
+            .style(text_style)
+            .alignment(Alignment::Center),
+        back_inner,
+    );
+
+    if ui_state.submenu_hovered == Some(2) {
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            back_inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            back_inner,
+        );
+    }
+
+    frame.render_widget(
+        Paragraph::new("Return to the previous menu")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        back_description,
+    );
 }
 
 fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {

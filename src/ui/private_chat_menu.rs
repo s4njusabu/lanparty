@@ -22,37 +22,53 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
 
     draw_banner(frame, title, ui_state);
 
-    let [connect_row, back_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
-        .spacing(1)
-        .areas(options);
+    let [connect_area, back_area] =
+        Layout::vertical([Constraint::Length(5), Constraint::Length(5)])
+            .spacing(1)
+            .areas(options);
+
+    let [connect, connect_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(connect_area);
+
+    let [back, back_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(back_area);
 
     let [connect] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(connect_row);
+        .areas(connect);
 
     let [back] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(back_row);
+        .areas(back);
 
     let text_style = Style::default()
         .fg(colors.text)
         .add_modifier(Modifier::BOLD);
 
+    let description_style = Style::default().fg(colors.text);
+
     let border_style = Style::default().fg(colors.accent);
 
-    let block = Block::bordered()
+    // Connect button
+    let connect_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(border_style);
+        .border_style(if ui_state.submenu_hovered == Some(0) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
 
-    frame.render_widget(block.clone(), connect);
+    frame.render_widget(connect_block.clone(), connect);
 
-    let inner = block.inner(connect);
+    let connect_inner = connect_block.inner(connect);
 
     frame.render_widget(
         Paragraph::new("Connect")
             .style(text_style)
             .alignment(Alignment::Center),
-        inner,
+        connect_inner,
     );
 
     if ui_state.submenu_hovered == Some(0) {
@@ -60,30 +76,45 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            inner,
+            connect_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            inner,
+            connect_inner,
         );
     }
 
-    let block = Block::bordered()
+    // Connect description
+    frame.render_widget(
+        Paragraph::new("Enter an IP address to start a private chat")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        connect_description,
+    );
+
+    // Back button
+    let back_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(border_style);
+        .border_style(if ui_state.submenu_hovered == Some(1) {
+            Style::default()
+                .fg(colors.selected)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            border_style
+        });
 
-    frame.render_widget(block.clone(), back);
+    frame.render_widget(back_block.clone(), back);
 
-    let inner = block.inner(back);
+    let back_inner = back_block.inner(back);
 
     frame.render_widget(
         Paragraph::new("Back")
             .style(text_style)
             .alignment(Alignment::Center),
-        inner,
+        back_inner,
     );
 
     if ui_state.submenu_hovered == Some(1) {
@@ -91,16 +122,24 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            inner,
+            back_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            inner,
+            back_inner,
         );
     }
+
+    // Back description
+    frame.render_widget(
+        Paragraph::new("Return to the previous menu")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        back_description,
+    );
 }
 
 fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
