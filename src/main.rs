@@ -9,7 +9,10 @@ use ratatui::{
 
 use crate::{
     states::ui_state::{HomeOptions, InChat, UiState},
-    ui::{border, error_page, group_chat_menu, home, theme_menu},
+    ui::{
+        border, error_page, file_transfer_menu, group_chat_menu, home, private_chat_menu,
+        profile_menu, themes_menu,
+    },
 };
 
 mod services;
@@ -34,7 +37,17 @@ fn main() {
                 error_page::draw_error_page(frame, inner, &ui_state, err);
             } else if ui_state.in_home {
                 ui::home::draw_home(frame, inner, &ui_state);
-            } else if ui_state.in_submenu {
+            } else if ui_state.in_submenu
+                && let Some(n) = ui_state.home_hovered
+            {
+                match n {
+                    0 => private_chat_menu::draw_private_chat_modes_menu(frame, inner, &ui_state),
+                    1 => group_chat_menu::draw_group_chat_modes_menu(frame, inner, &ui_state),
+                    2 => file_transfer_menu::draw_file_transfer_menu(frame, inner, &ui_state),
+                    3 => profile_menu::draw_profile_menu(frame, inner, &ui_state),
+                    4 => themes_menu::draw_themes_menu(frame, inner, &ui_state),
+                    _ => {}
+                }
             }
         });
 
@@ -166,16 +179,23 @@ fn main() {
                     }
                 }
                 KeyCode::Down => match ui_state.home_state {
+                    HomeOptions::PrivateChat => {
+                        if let Some(n) = ui_state.submenu_hovered
+                            && n < private_chat_menu::PRIVATE_CHAT_MODES_MAX_INDEX
+                        {
+                            ui_state.submenu_hovered = Some(n + 1);
+                        }
+                    }
                     HomeOptions::GroupChat => {
                         if let Some(n) = ui_state.submenu_hovered
-                            && n < group_chat_menu::MODE_OPTIONS_MAX_INDEX
+                            && n < group_chat_menu::GROUP_CHAT_MODES_MAX_INDEX
                         {
                             ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
                     HomeOptions::Themes => {
                         if let Some(n) = ui_state.submenu_hovered
-                            && n < theme_menu::THEME_OPTIONS_MAX_INDEX
+                            && n < themes_menu::THEME_OPTIONS_MAX_INDEX
                         {
                             ui_state.submenu_hovered = Some(n + 1);
                         }

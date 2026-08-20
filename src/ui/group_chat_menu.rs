@@ -7,170 +7,103 @@ use ratatui::{
 
 use crate::states::ui_state::UiState;
 
-pub const MODE_OPTIONS_MAX_INDEX: usize = 1;
+pub const GROUP_CHAT_MODES_MAX_INDEX: usize = 1;
 
-pub fn draw_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
+pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let colors = ui_state.theme.colors();
 
-    let [_, title, _, content] = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(8),
-        Constraint::Length(1),
-        Constraint::Min(0),
+    let [_, title, _, options, _] = Layout::vertical([
+        Constraint::Percentage(10),
+        Constraint::Percentage(20),
+        Constraint::Percentage(5),
+        Constraint::Percentage(50),
+        Constraint::Percentage(10),
     ])
     .areas(area);
 
     draw_banner(frame, title, ui_state);
 
-    let content = content.inner(Margin {
-        horizontal: 3,
-        vertical: 1,
-    });
+    let [client_row, host_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
+        .spacing(1)
+        .areas(options);
 
-    let [client, host] =
-        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .spacing(3)
-            .areas(content);
+    let [client] = Layout::horizontal([Constraint::Length(22)])
+        .flex(Flex::Center)
+        .areas(client_row);
+
+    let [host] = Layout::horizontal([Constraint::Length(22)])
+        .flex(Flex::Center)
+        .areas(host_row);
 
     let text_style = Style::default()
         .fg(colors.text)
         .add_modifier(Modifier::BOLD);
 
-    let selected_title_style = Style::default()
-        .fg(colors.selected)
-        .add_modifier(Modifier::BOLD);
+    let border_style = Style::default().fg(colors.accent);
 
-    let normal_title_style = Style::default()
-        .fg(colors.text)
-        .add_modifier(Modifier::BOLD);
-
-    // client
-    let client_border = if ui_state.submenu_hovered == Some(0) {
-        Style::default()
-            .fg(colors.selected)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(colors.accent)
-    };
+    let block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(border_style);
 
     frame.render_widget(
-        Block::bordered()
-            .title(" Client ")
-            .title_style(if ui_state.submenu_hovered == Some(0) {
-                selected_title_style
-            } else {
-                normal_title_style
-            })
-            .border_type(BorderType::Double)
-            .border_style(client_border),
+        Paragraph::new("Client")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(block.clone()),
         client,
     );
 
-    let inner = client.inner(Margin {
-        horizontal: 2,
-        vertical: 1,
-    });
+    if ui_state.submenu_hovered == Some(0) {
+        let inner = block.inner(client);
 
-    let [_, body, _, footer] = Layout::vertical([
-        Constraint::Percentage(18),
-        Constraint::Length(8),
-        Constraint::Min(0),
-        Constraint::Length(1),
-    ])
-    .areas(inner);
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
 
-    frame.render_widget(
-        Paragraph::new(format!(
-            "Join a session\n\n\nUsername: {}\n\n\nNote: An active host is required.",
-            ui_state.username
-        ))
-        .alignment(Alignment::Center)
-        .style(text_style),
-        body,
-    );
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
 
-    frame.render_widget(
-        Paragraph::new(if ui_state.submenu_hovered == Some(0) {
-            "● Selected ●"
-        } else {
-            "Press ← / →"
-        })
-        .alignment(Alignment::Center)
-        .style(if ui_state.submenu_hovered == Some(0) {
-            Style::default()
-                .fg(colors.selected)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(colors.text)
-        }),
-        footer,
-    );
-
-    // host
-    let host_border = if ui_state.submenu_hovered == Some(1) {
-        Style::default()
-            .fg(colors.selected)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(colors.accent)
-    };
+    let block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(border_style);
 
     frame.render_widget(
-        Block::bordered()
-            .title(" Host ")
-            .title_style(if ui_state.submenu_hovered == Some(1) {
-                selected_title_style
-            } else {
-                normal_title_style
-            })
-            .border_type(BorderType::Double)
-            .border_style(host_border),
+        Paragraph::new("Host")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(block.clone()),
         host,
     );
 
-    let inner = host.inner(Margin {
-        horizontal: 2,
-        vertical: 1,
-    });
+    if ui_state.submenu_hovered == Some(1) {
+        let inner = block.inner(host);
 
-    let [_, body, _, footer] = Layout::vertical([
-        Constraint::Percentage(18),
-        Constraint::Length(8),
-        Constraint::Min(0),
-        Constraint::Length(1),
-    ])
-    .areas(inner);
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
 
-    frame.render_widget(
-        Paragraph::new(format!(
-            "Host a session\n\n\nUsername: {}\n\n\nNote: This device will host the session.",
-            ui_state.username
-        ))
-        .alignment(Alignment::Center)
-        .style(text_style),
-        body,
-    );
-
-    frame.render_widget(
-        Paragraph::new(if ui_state.submenu_hovered == Some(1) {
-            "● Selected ●"
-        } else {
-            "Press ← / →"
-        })
-        .alignment(Alignment::Center)
-        .style(if ui_state.submenu_hovered == Some(1) {
-            Style::default()
-                .fg(colors.selected)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(colors.text)
-        }),
-        footer,
-    );
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
 }
 
 fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
-    let banner = include_str!("../../assets/modes_banner.txt");
+    let banner = include_str!("../../assets/group_chat_banner.txt");
     let colors = ui_state.theme.colors();
 
     let banner_width = banner

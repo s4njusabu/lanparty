@@ -9,7 +9,7 @@ use crate::states::ui_state::UiState;
 
 pub const THEME_OPTIONS_MAX_INDEX: usize = 1;
 
-pub fn draw_theme_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
+pub fn draw_themes_menu(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
     let colors = ui_state.theme.colors();
 
     let [_, title, _, options, _] = Layout::vertical([
@@ -19,7 +19,7 @@ pub fn draw_theme_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
         Constraint::Percentage(50),
         Constraint::Percentage(10),
     ])
-    .areas(area);
+    .areas(inner);
 
     draw_banner(frame, title, ui_state);
 
@@ -38,36 +38,65 @@ pub fn draw_theme_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
         .add_modifier(Modifier::BOLD);
     let border_style = Style::default().fg(colors.accent);
 
+    let block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(border_style);
+
     frame.render_widget(
-        Paragraph::new(if ui_state.submenu_hovered == Some(0) {
-            "» Dark «"
-        } else {
-            "Dark"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("Dark")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(block.clone()),
         dark,
     );
+
+    if ui_state.submenu_hovered == Some(0) {
+        let inner = block.inner(dark);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
+
+    let block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(border_style);
+
     frame.render_widget(
-        Paragraph::new(if ui_state.submenu_hovered == Some(1) {
-            "» Light «"
-        } else {
-            "Light"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("Light")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(block.clone()),
         light,
     );
+
+    if ui_state.submenu_hovered == Some(1) {
+        let inner = block.inner(light);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
 }
 
 fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {

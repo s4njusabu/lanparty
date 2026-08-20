@@ -5,4 +5,5 @@ pub mod group_chat_menu;
 pub mod group_chat_modes;
 pub mod home;
 pub mod private_chat_menu;
-pub mod theme_menu;
+pub mod profile_menu;
+pub mod themes_menu;
