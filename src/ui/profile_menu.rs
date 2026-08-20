@@ -7,15 +7,15 @@ use ratatui::{
 
 use crate::states::ui_state::UiState;
 
-pub const GROUP_CHAT_MODES_MAX_INDEX: usize = 2;
+pub const PROFILE_OPTIONS_MAX_INDEX: usize = 1;
 
-pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
+pub fn draw_profile_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let colors = ui_state.theme.colors();
 
     let [_, title, _, options, _] = Layout::vertical([
         Constraint::Percentage(10),
         Constraint::Percentage(20),
-        Constraint::Percentage(5),
+        Constraint::Percentage(3),
         Constraint::Percentage(50),
         Constraint::Percentage(10),
     ])
@@ -23,30 +23,35 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
 
     draw_banner(frame, title, ui_state);
 
-    let [client_area, host_area, back_area] = Layout::vertical([
+    let [info_area, change_area, back_area] = Layout::vertical([
         Constraint::Length(5),
-        Constraint::Length(5),
-        Constraint::Length(5),
+        Constraint::Length(4),
+        Constraint::Length(4),
     ])
     .spacing(1)
     .areas(options);
 
-    let [client, client_description] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(client_area);
+    let [info] = Layout::horizontal([Constraint::Length(40)])
+        .flex(Flex::Center)
+        .areas(info_area);
 
-    let [host, host_description] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(host_area);
+    let [change_row] = Layout::horizontal([Constraint::Length(22)])
+        .flex(Flex::Center)
+        .areas(change_area);
+
+    let [back_row] = Layout::horizontal([Constraint::Length(22)])
+        .flex(Flex::Center)
+        .areas(back_area);
+
+    let [change_username, change_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(1)]).areas(change_area);
 
     let [back, back_description] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(back_area);
+        Layout::vertical([Constraint::Length(3), Constraint::Length(1)]).areas(back_area);
 
-    let [client] = Layout::horizontal([Constraint::Length(22)])
+    let [change_username] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(client);
-
-    let [host] = Layout::horizontal([Constraint::Length(22)])
-        .flex(Flex::Center)
-        .areas(host);
+        .areas(change_username);
 
     let [back] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
@@ -60,8 +65,27 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
 
     let border_style = Style::default().fg(colors.accent);
 
-    // Client
-    let client_block = Block::bordered()
+    // Profile
+    let info_block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(border_style);
+
+    frame.render_widget(info_block.clone(), info);
+
+    let info_inner = info_block.inner(info);
+
+    frame.render_widget(
+        Paragraph::new(format!(
+            "Username: {}\n\nLocal IP: {}",
+            ui_state.username, ui_state.local_ip
+        ))
+        .style(text_style)
+        .alignment(Alignment::Center),
+        info_inner,
+    );
+
+    // Change username
+    let change_block = Block::bordered()
         .border_type(BorderType::Double)
         .border_style(if ui_state.submenu_hovered == Some(0) {
             Style::default()
@@ -71,15 +95,15 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
             border_style
         });
 
-    frame.render_widget(client_block.clone(), client);
+    frame.render_widget(change_block.clone(), change_username);
 
-    let client_inner = client_block.inner(client);
+    let change_inner = change_block.inner(change_username);
 
     frame.render_widget(
-        Paragraph::new("Client")
+        Paragraph::new("Change username")
             .style(text_style)
             .alignment(Alignment::Center),
-        client_inner,
+        change_inner,
     );
 
     if ui_state.submenu_hovered == Some(0) {
@@ -87,73 +111,28 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            client_inner,
+            change_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            client_inner,
+            change_inner,
         );
     }
 
     frame.render_widget(
-        Paragraph::new("Join an existing group chat")
+        Paragraph::new("Replaces the default username")
             .style(description_style)
             .alignment(Alignment::Center),
-        client_description,
-    );
-
-    // Host
-    let host_block = Block::bordered()
-        .border_type(BorderType::Double)
-        .border_style(if ui_state.submenu_hovered == Some(1) {
-            Style::default()
-                .fg(colors.selected)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            border_style
-        });
-
-    frame.render_widget(host_block.clone(), host);
-
-    let host_inner = host_block.inner(host);
-
-    frame.render_widget(
-        Paragraph::new("Host")
-            .style(text_style)
-            .alignment(Alignment::Center),
-        host_inner,
-    );
-
-    if ui_state.submenu_hovered == Some(1) {
-        frame.render_widget(
-            Paragraph::new("»")
-                .style(text_style)
-                .alignment(Alignment::Left),
-            host_inner,
-        );
-
-        frame.render_widget(
-            Paragraph::new("«")
-                .style(text_style)
-                .alignment(Alignment::Right),
-            host_inner,
-        );
-    }
-
-    frame.render_widget(
-        Paragraph::new("Create a new group chat for others to join")
-            .style(description_style)
-            .alignment(Alignment::Center),
-        host_description,
+        change_description,
     );
 
     // Back
     let back_block = Block::bordered()
         .border_type(BorderType::Double)
-        .border_style(if ui_state.submenu_hovered == Some(2) {
+        .border_style(if ui_state.submenu_hovered == Some(1) {
             Style::default()
                 .fg(colors.selected)
                 .add_modifier(Modifier::BOLD)
@@ -172,7 +151,7 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
         back_inner,
     );
 
-    if ui_state.submenu_hovered == Some(2) {
+    if ui_state.submenu_hovered == Some(1) {
         frame.render_widget(
             Paragraph::new("»")
                 .style(text_style)
@@ -197,7 +176,7 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
 }
 
 fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
-    let banner = include_str!("../../assets/group_chat_banner.txt");
+    let banner = include_str!("../../assets/profile_banner.txt");
     let colors = ui_state.theme.colors();
 
     let banner_width = banner

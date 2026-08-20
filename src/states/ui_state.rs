@@ -1,10 +1,14 @@
 use std::io::ErrorKind;
 
-use crate::{services::username, themes::Theme};
+use crate::{
+    services::{interface, username},
+    themes::Theme,
+};
 
 pub struct UiState {
     pub theme: Theme,
     pub username: String,
+    pub local_ip: String,
 
     pub in_home: bool,
     pub in_submenu: bool,
@@ -53,9 +57,15 @@ pub enum GroupChatMode {
 
 impl UiState {
     pub fn new() -> Self {
+        let local_ip = if let Some(ip) = interface::get_local_ip() {
+            ip
+        } else {
+            String::from("Unknown")
+        };
         Self {
             theme: Theme::Dark,
             username: username::default_username(),
+            local_ip,
 
             in_home: true,
             in_submenu: false,

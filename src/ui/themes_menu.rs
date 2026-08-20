@@ -7,9 +7,9 @@ use ratatui::{
 
 use crate::states::ui_state::UiState;
 
-pub const GROUP_CHAT_MODES_MAX_INDEX: usize = 2;
+pub const THEME_OPTIONS_MAX_INDEX: usize = 2;
 
-pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
+pub fn draw_themes_menu(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
     let colors = ui_state.theme.colors();
 
     let [_, title, _, options, _] = Layout::vertical([
@@ -19,11 +19,11 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
         Constraint::Percentage(50),
         Constraint::Percentage(10),
     ])
-    .areas(area);
+    .areas(inner);
 
     draw_banner(frame, title, ui_state);
 
-    let [client_area, host_area, back_area] = Layout::vertical([
+    let [dark_area, light_area, back_area] = Layout::vertical([
         Constraint::Length(5),
         Constraint::Length(5),
         Constraint::Length(5),
@@ -31,22 +31,22 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
     .spacing(1)
     .areas(options);
 
-    let [client, client_description] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(client_area);
+    let [dark, dark_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(dark_area);
 
-    let [host, host_description] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(host_area);
+    let [light, light_description] =
+        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(light_area);
 
     let [back, back_description] =
         Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(back_area);
 
-    let [client] = Layout::horizontal([Constraint::Length(22)])
+    let [dark] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(client);
+        .areas(dark);
 
-    let [host] = Layout::horizontal([Constraint::Length(22)])
+    let [light] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
-        .areas(host);
+        .areas(light);
 
     let [back] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
@@ -60,8 +60,8 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
 
     let border_style = Style::default().fg(colors.accent);
 
-    // Client
-    let client_block = Block::bordered()
+    // Dark
+    let dark_block = Block::bordered()
         .border_type(BorderType::Double)
         .border_style(if ui_state.submenu_hovered == Some(0) {
             Style::default()
@@ -71,15 +71,15 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
             border_style
         });
 
-    frame.render_widget(client_block.clone(), client);
+    frame.render_widget(dark_block.clone(), dark);
 
-    let client_inner = client_block.inner(client);
+    let dark_inner = dark_block.inner(dark);
 
     frame.render_widget(
-        Paragraph::new("Client")
+        Paragraph::new("Dark")
             .style(text_style)
             .alignment(Alignment::Center),
-        client_inner,
+        dark_inner,
     );
 
     if ui_state.submenu_hovered == Some(0) {
@@ -87,26 +87,26 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            client_inner,
+            dark_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            client_inner,
+            dark_inner,
         );
     }
 
     frame.render_widget(
-        Paragraph::new("Join an existing group chat")
+        Paragraph::new("Default theme")
             .style(description_style)
             .alignment(Alignment::Center),
-        client_description,
+        dark_description,
     );
 
-    // Host
-    let host_block = Block::bordered()
+    // Light
+    let light_block = Block::bordered()
         .border_type(BorderType::Double)
         .border_style(if ui_state.submenu_hovered == Some(1) {
             Style::default()
@@ -116,15 +116,15 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
             border_style
         });
 
-    frame.render_widget(host_block.clone(), host);
+    frame.render_widget(light_block.clone(), light);
 
-    let host_inner = host_block.inner(host);
+    let light_inner = light_block.inner(light);
 
     frame.render_widget(
-        Paragraph::new("Host")
+        Paragraph::new("Light")
             .style(text_style)
             .alignment(Alignment::Center),
-        host_inner,
+        light_inner,
     );
 
     if ui_state.submenu_hovered == Some(1) {
@@ -132,22 +132,22 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
             Paragraph::new("»")
                 .style(text_style)
                 .alignment(Alignment::Left),
-            host_inner,
+            light_inner,
         );
 
         frame.render_widget(
             Paragraph::new("«")
                 .style(text_style)
                 .alignment(Alignment::Right),
-            host_inner,
+            light_inner,
         );
     }
 
     frame.render_widget(
-        Paragraph::new("Create a new group chat for others to join")
+        Paragraph::new("I dont recommend this")
             .style(description_style)
             .alignment(Alignment::Center),
-        host_description,
+        light_description,
     );
 
     // Back
@@ -197,7 +197,7 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
 }
 
 fn draw_banner(frame: &mut Frame, area: Rect, ui_state: &UiState) {
-    let banner = include_str!("../../assets/group_chat_banner.txt");
+    let banner = include_str!("../../assets/themes_banner.txt");
     let colors = ui_state.theme.colors();
 
     let banner_width = banner
