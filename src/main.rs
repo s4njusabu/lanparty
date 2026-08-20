@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::time::Duration;
+use std::{io::ErrorKind, time::Duration};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
@@ -17,7 +17,7 @@ mod states;
 pub mod themes;
 mod ui;
 
-fn main() -> std::io::Result<()> {
+fn main() {
     let mut terminal = ratatui::init();
 
     let mut ui_state = UiState::new();
@@ -38,8 +38,20 @@ fn main() -> std::io::Result<()> {
 
         // In home menu
         if ui_state.in_home
-            && event::poll(Duration::from_millis(16))?
-            && let Event::Key(key_event) = event::read()?
+            && match event::poll(Duration::from_millis(16)) {
+                Ok(result) => result,
+                Err(err) => {
+                    ui_state.error = Some(err.kind());
+                    continue;
+                }
+            }
+            && let Event::Key(key_event) = match event::read() {
+                Ok(event) => event,
+                Err(err) => {
+                    ui_state.error = Some(err.kind());
+                    continue;
+                }
+            }
         {
             match key_event.code {
                 KeyCode::Enter | KeyCode::Right => ui_state.home_selected = ui_state.home_hovered,
@@ -94,8 +106,20 @@ fn main() -> std::io::Result<()> {
                 }
             }
         } else if ui_state.in_submenu
-            && event::poll(Duration::from_millis(16))?
-            && let Event::Key(key_event) = event::read()?
+            && match event::poll(Duration::from_millis(16)) {
+                Ok(result) => result,
+                Err(err) => {
+                    ui_state.error = Some(err.kind());
+                    continue;
+                }
+            }
+            && let Event::Key(key_event) = match event::read() {
+                Ok(event) => event,
+                Err(err) => {
+                    ui_state.error = Some(err.kind());
+                    continue;
+                }
+            }
         {
             // In submenu
             match key_event.code {
@@ -139,6 +163,8 @@ fn main() -> std::io::Result<()> {
                             ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
+                    HomeOptions::FileTransfer => {}
+                    HomeOptions::Profile => {}
                     _ => {}
                 },
                 KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
@@ -155,5 +181,4 @@ fn main() -> std::io::Result<()> {
 
     ratatui::restore();
     println!("Bye from LAN Party!");
-    Ok(())
 }

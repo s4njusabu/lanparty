@@ -1,3 +1,0 @@
-themes.rs done
-border.rs done
-home.rs done
