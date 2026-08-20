@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::states::ui_state::UiState;
+use crate::app::ui_state::UiState;
 
 pub fn draw_error_page(frame: &mut Frame, inner: Rect, ui_state: &UiState, err: ErrorKind) {
     let colors = ui_state.theme.colors();

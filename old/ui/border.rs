@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, BorderType},
 };
 
-use crate::states::ui_state::UiState;
+use crate::app::ui_state::UiState;
 
 pub fn draw_border(frame: &mut Frame, ui_state: &UiState) -> Rect {
     let colors = ui_state.theme.colors();

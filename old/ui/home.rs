@@ -5,9 +5,9 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::states::ui_state::UiState;
+use crate::app::ui_state::UiState;
 
-pub const HOME_OPTIONS_MAX_INDEX: usize = 5;
+pub const HOME_OPTIONS_MAX_INDEX: usize = 3;
 
 pub fn draw_home(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let [banner_area, content_area] =
@@ -67,7 +67,7 @@ fn draw_content(frame: &mut Frame, content_area: Rect, ui_state: &UiState) {
 
     let area = block.inner(content_area);
 
-    // horizontal (dividing the area so i can get like a perfecly centered buttons)
+    // horizontal (dividing the area so i get like a perfecly centered buttons)
     let [_, center, _] = Layout::horizontal([
         Constraint::Percentage(40),
         Constraint::Percentage(20),
@@ -77,16 +77,14 @@ fn draw_content(frame: &mut Frame, content_area: Rect, ui_state: &UiState) {
 
     // vertical
     let [_, menu, _] = Layout::vertical([
-        Constraint::Percentage(10),
+        Constraint::Percentage(15),
         Constraint::Percentage(80),
-        Constraint::Percentage(10),
+        Constraint::Percentage(5),
     ])
     .areas(center);
 
     // horizontal
-    let [private, group, file, profile, themes, exit] = Layout::vertical([
-        Constraint::Length(3),
-        Constraint::Length(3),
+    let [modes, themes, install, exit] = Layout::vertical([
         Constraint::Length(3),
         Constraint::Length(3),
         Constraint::Length(3),
@@ -102,9 +100,9 @@ fn draw_content(frame: &mut Frame, content_area: Rect, ui_state: &UiState) {
 
     frame.render_widget(
         Paragraph::new(if ui_state.home_hovered == Some(0) {
-            "» Private chat «"
+            "» Modes «"
         } else {
-            "Private chat"
+            "Modes"
         })
         .style(text_style)
         .alignment(Alignment::Center)
@@ -113,59 +111,11 @@ fn draw_content(frame: &mut Frame, content_area: Rect, ui_state: &UiState) {
                 .border_type(BorderType::Double)
                 .border_style(border_style),
         ),
-        private,
+        modes,
     );
 
     frame.render_widget(
         Paragraph::new(if ui_state.home_hovered == Some(1) {
-            "» Group chat «"
-        } else {
-            "Group chat"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
-        group,
-    );
-
-    frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(2) {
-            "» File transfer «"
-        } else {
-            "File transfer"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
-        file,
-    );
-
-    frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(3) {
-            "» Profile «"
-        } else {
-            "Profile"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
-        profile,
-    );
-
-    frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(4) {
             "» Themes «"
         } else {
             "Themes"
@@ -179,8 +129,25 @@ fn draw_content(frame: &mut Frame, content_area: Rect, ui_state: &UiState) {
         ),
         themes,
     );
+
     frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(5) {
+        Paragraph::new(if ui_state.home_hovered == Some(2) {
+            "» Installation «"
+        } else {
+            "Installation"
+        })
+        .style(text_style)
+        .alignment(Alignment::Center)
+        .block(
+            Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(border_style),
+        ),
+        install,
+    );
+
+    frame.render_widget(
+        Paragraph::new(if ui_state.home_hovered == Some(3) {
             "» Exit «"
         } else {
             "Exit"

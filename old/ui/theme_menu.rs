@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::states::ui_state::UiState;
+use crate::app::ui_state::UiState;
 
 pub const THEME_OPTIONS_MAX_INDEX: usize = 1;
 
