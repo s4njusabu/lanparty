@@ -1,9 +1,9 @@
 [package]
 name = "lanparty"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2024"
 description = "LAN communication"
-license = "MIT"
+license = "GPL-3.0"
 repository = "https://github.com/s4njusabu/lanparty"
 readme = "README.md"
 

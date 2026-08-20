@@ -43,4 +43,4 @@ $HOME/.cargo/bin/lanparty
 
 ## License
 
-MIT
+GPL-3
