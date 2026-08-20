@@ -1,4 +1,4 @@
-use crate::themes::Theme;
+use crate::{services::username, themes::Theme};
 
 pub struct UiState {
     pub theme: Theme,
@@ -47,7 +47,7 @@ impl UiState {
     pub fn new() -> Self {
         Self {
             theme: Theme::Dark,
-            username: String::new(),
+            username: username::default_username(),
 
             in_home: true,
             in_submenu: false,
