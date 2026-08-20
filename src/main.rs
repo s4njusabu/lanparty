@@ -193,6 +193,13 @@ fn main() {
                             ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
+                    HomeOptions::FileTransfer => {
+                        if let Some(n) = ui_state.submenu_hovered
+                            && n < file_transfer_menu::FILE_TRANSFER_OPTIONS_MAX_INDEX
+                        {
+                            ui_state.submenu_hovered = Some(n + 1);
+                        }
+                    }
                     HomeOptions::Themes => {
                         if let Some(n) = ui_state.submenu_hovered
                             && n < themes_menu::THEME_OPTIONS_MAX_INDEX
