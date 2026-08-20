@@ -22,10 +22,9 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
 
     draw_banner(frame, title, ui_state);
 
-    let [connect_row, back_row] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
-            .spacing(1)
-            .areas(options);
+    let [connect_row, back_row] = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
+        .spacing(1)
+        .areas(options);
 
     let [connect] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
