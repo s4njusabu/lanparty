@@ -1,3 +1,5 @@
+use std::io::ErrorKind;
+
 use crate::{services::username, themes::Theme};
 
 pub struct UiState {
@@ -22,8 +24,9 @@ pub struct UiState {
     pub submenu_hovered: Option<usize>,
     pub submenu_selected: Option<usize>,
 
+    pub error: Option<ErrorKind>,
+
     // things that may change
-    pub error_occured: bool,
     pub input: String,
     pub last_message: String,
 }
@@ -72,7 +75,8 @@ impl UiState {
             submenu_hovered: Some(0),
             submenu_selected: None,
 
-            error_occured: false,
+            error: None,
+
             input: String::new(),
             last_message: String::new(),
         }
