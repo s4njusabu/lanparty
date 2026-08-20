@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     states::ui_state::{HomeOptions, InChat, UiState},
-    ui::{border, group_chat_menu, home, theme_menu},
+    ui::{border, error_page, group_chat_menu, home, theme_menu},
 };
 
 mod services;
@@ -30,11 +30,28 @@ fn main() {
             );
             let inner = border::draw_border(frame, &ui_state);
 
-            if ui_state.in_home {
+            if let Some(err) = ui_state.error {
+                error_page::draw_error_page(frame, inner, &ui_state, err);
+            } else if ui_state.in_home {
                 ui::home::draw_home(frame, inner, &ui_state);
             } else if ui_state.in_submenu {
             }
         });
+
+        // Handle error
+        if ui_state.error.is_some() {
+            match event::poll(Duration::from_millis(16)) {
+                Ok(true) => {}
+                Ok(false) => continue,
+                Err(_) => continue,
+            }
+
+            match event::read() {
+                Ok(Event::Key(_)) => break,
+                Ok(_) => continue,
+                Err(_) => continue,
+            }
+        }
 
         // In home menu
         if ui_state.in_home
