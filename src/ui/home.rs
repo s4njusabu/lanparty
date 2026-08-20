@@ -100,98 +100,169 @@ fn draw_content(frame: &mut Frame, content_area: Rect, ui_state: &UiState) {
 
     let border_style = Style::default().fg(colors.accent);
 
+    let button_block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(border_style);
+
+    // Private chat
     frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(0) {
-            "» Private chat «"
-        } else {
-            "Private chat"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("Private chat")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(button_block.clone()),
         private,
     );
 
+    if ui_state.home_hovered == Some(0) {
+        let inner = button_block.inner(private);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
+
+    // Group chat
     frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(1) {
-            "» Group chat «"
-        } else {
-            "Group chat"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("Group chat")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(button_block.clone()),
         group,
     );
 
+    if ui_state.home_hovered == Some(1) {
+        let inner = button_block.inner(group);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
+
+    // File transfer
     frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(2) {
-            "» File transfer «"
-        } else {
-            "File transfer"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("File transfer")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(button_block.clone()),
         file,
     );
 
+    if ui_state.home_hovered == Some(2) {
+        let inner = button_block.inner(file);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
+
+    // Profile
     frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(3) {
-            "» Profile «"
-        } else {
-            "Profile"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("Profile")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(button_block.clone()),
         profile,
     );
 
+    if ui_state.home_hovered == Some(3) {
+        let inner = button_block.inner(profile);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
+
+    // Themes
     frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(4) {
-            "» Themes «"
-        } else {
-            "Themes"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("Themes")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(button_block.clone()),
         themes,
     );
+
+    if ui_state.home_hovered == Some(4) {
+        let inner = button_block.inner(themes);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
+
+    // Exit
     frame.render_widget(
-        Paragraph::new(if ui_state.home_hovered == Some(5) {
-            "» Exit «"
-        } else {
-            "Exit"
-        })
-        .style(text_style)
-        .alignment(Alignment::Center)
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Double)
-                .border_style(border_style),
-        ),
+        Paragraph::new("Exit")
+            .style(text_style)
+            .alignment(Alignment::Center)
+            .block(button_block.clone()),
         exit,
     );
+
+    if ui_state.home_hovered == Some(5) {
+        let inner = button_block.inner(exit);
+
+        frame.render_widget(
+            Paragraph::new("»")
+                .style(text_style)
+                .alignment(Alignment::Left),
+            inner,
+        );
+
+        frame.render_widget(
+            Paragraph::new("«")
+                .style(text_style)
+                .alignment(Alignment::Right),
+            inner,
+        );
+    }
 }
