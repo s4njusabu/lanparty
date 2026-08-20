@@ -200,6 +200,13 @@ fn main() {
                             ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
+                    HomeOptions::Profile => {
+                        if let Some(n) = ui_state.submenu_hovered
+                            && n < profile_menu::PROFILE_OPTIONS_MAX_INDEX
+                        {
+                            ui_state.submenu_hovered = Some(n + 1);
+                        }
+                    }
                     HomeOptions::Themes => {
                         if let Some(n) = ui_state.submenu_hovered
                             && n < themes_menu::THEME_OPTIONS_MAX_INDEX
