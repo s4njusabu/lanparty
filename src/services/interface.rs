@@ -35,6 +35,23 @@ pub fn get_network_interface_and_user_ip() -> Option<(String, String)> {
     None
 }
 
+pub fn get_local_ip() -> Option<String> {
+    if let Ok(output) = Command::new("ip")
+        .args(["route", "get", "8.8.8.8"])
+        .output()
+    {
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut words = text.split_whitespace();
+        while let Some(word) = words.next() {
+            if word == "src" {
+                let ip = words.next();
+                return ip.map(|ip| ip.to_string());
+            }
+        }
+    }
+    None
+}
+
 fn get_broadcast_addr(interface: &str) -> Option<String> {
     if let Ok(output) = Command::new("ip")
         .args(["address", "show", interface])
