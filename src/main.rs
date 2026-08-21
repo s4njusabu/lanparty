@@ -26,6 +26,7 @@ fn main() {
     let mut ui_state = UiState::new();
 
     loop {
+        // Render block
         terminal.draw(|frame| {
             frame.render_widget(
                 Block::new().style(Style::default().bg(ui_state.theme.colors().background)),
@@ -226,6 +227,27 @@ fn main() {
                 }
                 KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
+            }
+
+            match ui_state.home_state {
+                HomeOptions::PrivateChat => {}
+                HomeOptions::GroupChat => {}
+                HomeOptions::FileTransfer => {}
+                HomeOptions::Profile => {}
+                HomeOptions::Themes => {
+                    if let Some(n) = ui_state.submenu_selected.take() {
+                        match n {
+                            0 => ui_state.theme = themes::Theme::Dark,
+                            1 => ui_state.theme = themes::Theme::Light,
+                            2 => {
+                                ui_state.in_home = true;
+                                ui_state.in_submenu = false;
+                                ui_state.submenu_hovered = Some(0);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
             }
         }
     }
