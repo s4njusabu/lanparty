@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::states::ui_state::UiState;
+use crate::states::ui_state::{InputMode, UiState};
 
 pub const PROFILE_OPTIONS_MAX_INDEX: usize = 1;
 
@@ -34,14 +34,6 @@ pub fn draw_profile_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let [info] = Layout::horizontal([Constraint::Length(40)])
         .flex(Flex::Center)
         .areas(info_area);
-
-    let [change_row] = Layout::horizontal([Constraint::Length(22)])
-        .flex(Flex::Center)
-        .areas(change_area);
-
-    let [back_row] = Layout::horizontal([Constraint::Length(22)])
-        .flex(Flex::Center)
-        .areas(back_area);
 
     let [change_username, change_description] =
         Layout::vertical([Constraint::Length(3), Constraint::Length(1)]).areas(change_area);
@@ -74,15 +66,24 @@ pub fn draw_profile_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
 
     let info_inner = info_block.inner(info);
 
-    frame.render_widget(
-        Paragraph::new(format!(
-            "Username: {}\n\nLocal IP: {}",
-            ui_state.username, ui_state.local_ip
-        ))
-        .style(text_style)
-        .alignment(Alignment::Center),
-        info_inner,
-    );
+    if ui_state.input_mode == Some(InputMode::ChangeUsername) {
+        frame.render_widget(
+            Paragraph::new(ui_state.username.as_str())
+                .style(text_style)
+                .alignment(Alignment::Center),
+            info_inner,
+        );
+    } else {
+        frame.render_widget(
+            Paragraph::new(format!(
+                "Username: {}\n\nLocal IP: {}",
+                ui_state.username, ui_state.local_ip
+            ))
+            .style(text_style)
+            .alignment(Alignment::Center),
+            info_inner,
+        );
+    }
 
     // Change username
     let change_block = Block::bordered()
@@ -123,9 +124,13 @@ pub fn draw_profile_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     }
 
     frame.render_widget(
-        Paragraph::new("Replaces the default username")
-            .style(description_style)
-            .alignment(Alignment::Center),
+        Paragraph::new(if ui_state.input_mode == Some(InputMode::ChangeUsername) {
+            "Enter to confirm and Esc to cancel"
+        } else {
+            "Requires atleast 3 characters"
+        })
+        .style(description_style)
+        .alignment(Alignment::Center),
         change_description,
     );
 

@@ -1,14 +1,13 @@
-#![allow(unused)]
-use std::{io::ErrorKind, time::Duration};
+use std::time::Duration;
 
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    crossterm::event::{self, Event, KeyCode, KeyModifiers},
     style::Style,
     widgets::Block,
 };
 
 use crate::{
-    states::ui_state::{HomeOptions, InChat, UiState},
+    states::ui_state::{HomeOptions, InChat, InputMode, UiState},
     ui::{
         border, error_page, file_transfer_menu, group_chat_menu, home, private_chat_menu,
         profile_menu, themes_menu,
@@ -153,13 +152,16 @@ fn main() {
             }
         {
             // In submenu
+            // Key logic
             match key_event.code {
                 KeyCode::Enter => {
                     if ui_state.home_state == HomeOptions::PrivateChat {
-                        ui_state.in_chat = Some(InChat::Private);
                         ui_state.submenu_selected = ui_state.submenu_hovered;
+                        ui_state.in_chat = Some(InChat::Private);
                     } else if ui_state.home_state == HomeOptions::GroupChat {
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
                         ui_state.in_chat = Some(InChat::Group);
+                    } else if ui_state.home_state == HomeOptions::Profile {
                         ui_state.submenu_selected = ui_state.submenu_hovered;
                     } else {
                         ui_state.submenu_selected = ui_state.submenu_hovered;
@@ -215,11 +217,8 @@ fn main() {
                             ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
-                    HomeOptions::FileTransfer => {}
-                    HomeOptions::Profile => {}
-                    _ => {}
                 },
-                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                KeyCode::Char('q') | KeyCode::Esc if ui_state.input_mode.is_none() => {
                     ui_state.in_home = true;
                     ui_state.in_submenu = false;
                     ui_state.submenu_hovered = Some(0);
@@ -229,22 +228,73 @@ fn main() {
                 _ => {}
             }
 
-            match ui_state.home_state {
-                HomeOptions::PrivateChat => {}
-                HomeOptions::GroupChat => {}
-                HomeOptions::FileTransfer => {}
-                HomeOptions::Profile => {}
-                HomeOptions::Themes => {
-                    if let Some(n) = ui_state.submenu_selected.take() {
-                        match n {
-                            0 => ui_state.theme = themes::Theme::Dark,
-                            1 => ui_state.theme = themes::Theme::Light,
-                            2 => {
-                                ui_state.in_home = true;
-                                ui_state.in_submenu = false;
-                                ui_state.submenu_hovered = Some(0);
+            if let Some(mode) = ui_state.input_mode {
+                match mode {
+                    InputMode::PrivateChat => {}
+                    InputMode::GroupChat => {}
+                    InputMode::ChangeUsername => match key_event.code {
+                        KeyCode::Char(c) => {
+                            if ui_state.username.len() < 15 {
+                                ui_state.username.push(c);
                             }
-                            _ => {}
+                        }
+
+                        KeyCode::Backspace => {
+                            ui_state.username.pop();
+                        }
+
+                        KeyCode::Enter => {
+                            if ui_state.username.len() >= 3 {
+                                ui_state.input_mode = None;
+                                ui_state.previous_text.clear();
+                                ui_state.submenu_selected = None;
+                            }
+                        }
+
+                        KeyCode::Esc => {
+                            ui_state.username = ui_state.previous_text.clone();
+                            ui_state.previous_text.clear();
+                            ui_state.input_mode = None;
+                            ui_state.submenu_selected = None;
+                        }
+
+                        _ => {}
+                    },
+                }
+            } else {
+                match ui_state.home_state {
+                    HomeOptions::PrivateChat => {}
+                    HomeOptions::GroupChat => {}
+                    HomeOptions::FileTransfer => {}
+                    HomeOptions::Profile => {
+                        if let Some(n) = ui_state.submenu_selected.take() {
+                            match n {
+                                0 => {
+                                    ui_state.previous_text = ui_state.username.clone();
+                                    ui_state.username.clear();
+                                    ui_state.input_mode = Some(InputMode::ChangeUsername);
+                                }
+                                1 => {
+                                    ui_state.in_home = true;
+                                    ui_state.in_submenu = false;
+                                    ui_state.submenu_hovered = Some(0);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    HomeOptions::Themes => {
+                        if let Some(n) = ui_state.submenu_selected.take() {
+                            match n {
+                                0 => ui_state.theme = themes::Theme::Dark,
+                                1 => ui_state.theme = themes::Theme::Light,
+                                2 => {
+                                    ui_state.in_home = true;
+                                    ui_state.in_submenu = false;
+                                    ui_state.submenu_hovered = Some(0);
+                                }
+                                _ => {}
+                            }
                         }
                     }
                 }

@@ -30,9 +30,11 @@ pub struct UiState {
 
     pub error: Option<ErrorKind>,
 
-    // things that may change
+    // input state
+    pub input_mode: Option<InputMode>,
     pub input: String,
-    pub last_message: String,
+
+    pub previous_text: String,
 }
 
 #[derive(PartialEq)]
@@ -49,6 +51,14 @@ pub enum InChat {
     Group,
 }
 
+#[derive(PartialEq, Clone, Copy)]
+pub enum InputMode {
+    ChangeUsername,
+    PrivateChat,
+    GroupChat,
+}
+
+// Enum that i should consider doing some changes
 pub enum GroupChatMode {
     Client,
     Host,
@@ -88,7 +98,9 @@ impl UiState {
             error: None,
 
             input: String::new(),
-            last_message: String::new(),
+            input_mode: None,
+
+            previous_text: String::new(),
         }
     }
 }
