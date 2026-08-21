@@ -1,14 +1,13 @@
-#![allow(unused)]
-use std::{io::ErrorKind, time::Duration};
+use std::time::Duration;
 
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    crossterm::event::{self, Event, KeyCode, KeyModifiers},
     style::Style,
     widgets::Block,
 };
 
 use crate::{
-    states::ui_state::{HomeOptions, InChat, UiState},
+    states::ui_state::{HomeOptions, InChat, InputMode, UiState},
     ui::{
         border, error_page, file_transfer_menu, group_chat_menu, home, private_chat_menu,
         profile_menu, themes_menu,
@@ -26,14 +25,15 @@ fn main() {
     let mut ui_state = UiState::new();
 
     loop {
-        terminal.draw(|frame| {
+        // Render block
+        if let Err(err) = terminal.draw(|frame| {
             frame.render_widget(
                 Block::new().style(Style::default().bg(ui_state.theme.colors().background)),
                 frame.area(),
             );
             let inner = border::draw_border(frame, &ui_state);
 
-            if let Some(err) = ui_state.error {
+            if let Some(err) = ui_state.error.take() {
                 error_page::draw_error_page(frame, inner, &ui_state, err);
             } else if ui_state.in_home {
                 ui::home::draw_home(frame, inner, &ui_state);
@@ -49,7 +49,10 @@ fn main() {
                     _ => {}
                 }
             }
-        });
+        }) {
+            ui_state.error = Some(err.kind());
+            break;
+        }
 
         // Handle error
         if ui_state.error.is_some() {
@@ -152,33 +155,36 @@ fn main() {
             }
         {
             // In submenu
+            // Key logic layer 1
             match key_event.code {
-                KeyCode::Enter => {
+                KeyCode::Enter if ui_state.input_mode.is_none() => {
                     if ui_state.home_state == HomeOptions::PrivateChat {
+                        ui_state.submenu_selected = ui_state.submenu_hovered;
                         ui_state.in_chat = Some(InChat::Private);
-                        ui_state.submenu_selected = ui_state.submenu_hovered;
                     } else if ui_state.home_state == HomeOptions::GroupChat {
-                        ui_state.in_chat = Some(InChat::Group);
                         ui_state.submenu_selected = ui_state.submenu_hovered;
+                        ui_state.in_chat = Some(InChat::Group);
                     } else {
                         ui_state.submenu_selected = ui_state.submenu_hovered;
                     }
                 }
-                KeyCode::Left => {
+                KeyCode::Left if ui_state.input_mode.is_none() => {
                     ui_state.in_home = true;
                     ui_state.in_submenu = false;
                     ui_state.submenu_hovered = Some(0);
                     ui_state.submenu_selected = None;
                 }
-                KeyCode::Right => ui_state.submenu_selected = ui_state.submenu_hovered,
-                KeyCode::Up => {
+                KeyCode::Right if ui_state.input_mode.is_none() => {
+                    ui_state.submenu_selected = ui_state.submenu_hovered
+                }
+                KeyCode::Up if ui_state.input_mode.is_none() => {
                     if let Some(n) = ui_state.submenu_hovered
                         && n > 0
                     {
                         ui_state.submenu_hovered = Some(n - 1)
                     }
                 }
-                KeyCode::Down => match ui_state.home_state {
+                KeyCode::Down if ui_state.input_mode.is_none() => match ui_state.home_state {
                     HomeOptions::PrivateChat => {
                         if let Some(n) = ui_state.submenu_hovered
                             && n < private_chat_menu::PRIVATE_CHAT_MODES_MAX_INDEX
@@ -214,11 +220,8 @@ fn main() {
                             ui_state.submenu_hovered = Some(n + 1);
                         }
                     }
-                    HomeOptions::FileTransfer => {}
-                    HomeOptions::Profile => {}
-                    _ => {}
                 },
-                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Backspace => {
+                KeyCode::Char('q') | KeyCode::Esc if ui_state.input_mode.is_none() => {
                     ui_state.in_home = true;
                     ui_state.in_submenu = false;
                     ui_state.submenu_hovered = Some(0);
@@ -227,9 +230,87 @@ fn main() {
                 KeyCode::Char('c') if key_event.modifiers == KeyModifiers::CONTROL => break,
                 _ => {}
             }
+
+            if let Some(mode) = ui_state.input_mode {
+                // Key logic layer 2
+                match mode {
+                    InputMode::PrivateChat => {}
+                    InputMode::GroupChat => {}
+                    InputMode::ChangeUsername => match key_event.code {
+                        KeyCode::Char(c) => {
+                            if ui_state.username.len() < 15 {
+                                ui_state.username.push(c);
+                            }
+                        }
+
+                        KeyCode::Backspace => {
+                            ui_state.username.pop();
+                        }
+
+                        KeyCode::Enter | KeyCode::Right => {
+                            if ui_state.username.len() >= 3 {
+                                ui_state.input_mode = None;
+                                ui_state.previous_text.clear();
+                                ui_state.submenu_selected = None;
+                            }
+                        }
+
+                        KeyCode::Esc => {
+                            ui_state.username = ui_state.previous_text.clone();
+                            ui_state.previous_text.clear();
+                            ui_state.input_mode = None;
+                            ui_state.submenu_selected = None;
+                        }
+
+                        _ => {}
+                    },
+                }
+            } else {
+                match ui_state.home_state {
+                    HomeOptions::PrivateChat => {}
+                    HomeOptions::GroupChat => {}
+                    HomeOptions::FileTransfer => {}
+                    HomeOptions::Profile => {
+                        if let Some(n) = ui_state.submenu_selected.take() {
+                            match n {
+                                0 => {
+                                    ui_state.previous_text = ui_state.username.clone();
+                                    ui_state.username.clear();
+                                    ui_state.input_mode = Some(InputMode::ChangeUsername);
+                                }
+                                1 => {
+                                    ui_state.in_home = true;
+                                    ui_state.in_submenu = false;
+                                    ui_state.submenu_hovered = Some(0);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    HomeOptions::Themes => {
+                        if let Some(n) = ui_state.submenu_selected.take() {
+                            match n {
+                                0 => ui_state.theme = themes::Theme::Dark,
+                                1 => ui_state.theme = themes::Theme::Light,
+                                2 => {
+                                    ui_state.in_home = true;
+                                    ui_state.in_submenu = false;
+                                    ui_state.submenu_hovered = Some(0);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
     ratatui::restore();
-    println!("Bye from LAN Party!");
+
+    if ui_state.error.is_some() {
+        println!("An error occurred while rendering the terminal.");
+    } else {
+        println!("Bye from LAN Party!");
+    }
 }
