@@ -155,7 +155,7 @@ fn main() {
             }
         {
             // In submenu
-            // Key logic for the layer 1 (no second key logic ones)
+            // Key logic layer 1
             match key_event.code {
                 KeyCode::Enter if ui_state.input_mode.is_none() => {
                     if ui_state.home_state == HomeOptions::PrivateChat {
@@ -232,6 +232,7 @@ fn main() {
             }
 
             if let Some(mode) = ui_state.input_mode {
+                // Key logic layer 2
                 match mode {
                     InputMode::PrivateChat => {}
                     InputMode::GroupChat => {}
