@@ -26,14 +26,14 @@ fn main() {
 
     loop {
         // Render block
-        terminal.draw(|frame| {
+        if let Err(err) = terminal.draw(|frame| {
             frame.render_widget(
                 Block::new().style(Style::default().bg(ui_state.theme.colors().background)),
                 frame.area(),
             );
             let inner = border::draw_border(frame, &ui_state);
 
-            if let Some(err) = ui_state.error {
+            if let Some(err) = ui_state.error.take() {
                 error_page::draw_error_page(frame, inner, &ui_state, err);
             } else if ui_state.in_home {
                 ui::home::draw_home(frame, inner, &ui_state);
@@ -49,7 +49,10 @@ fn main() {
                     _ => {}
                 }
             }
-        });
+        }) {
+            ui_state.error = Some(err.kind());
+            break;
+        }
 
         // Handle error
         if ui_state.error.is_some() {
@@ -152,36 +155,36 @@ fn main() {
             }
         {
             // In submenu
-            // Key logic
+            // Key logic for the layer 1 (no second key logic ones)
             match key_event.code {
-                KeyCode::Enter => {
+                KeyCode::Enter if ui_state.input_mode.is_none() => {
                     if ui_state.home_state == HomeOptions::PrivateChat {
                         ui_state.submenu_selected = ui_state.submenu_hovered;
                         ui_state.in_chat = Some(InChat::Private);
                     } else if ui_state.home_state == HomeOptions::GroupChat {
                         ui_state.submenu_selected = ui_state.submenu_hovered;
                         ui_state.in_chat = Some(InChat::Group);
-                    } else if ui_state.home_state == HomeOptions::Profile {
-                        ui_state.submenu_selected = ui_state.submenu_hovered;
                     } else {
                         ui_state.submenu_selected = ui_state.submenu_hovered;
                     }
                 }
-                KeyCode::Left => {
+                KeyCode::Left if ui_state.input_mode.is_none() => {
                     ui_state.in_home = true;
                     ui_state.in_submenu = false;
                     ui_state.submenu_hovered = Some(0);
                     ui_state.submenu_selected = None;
                 }
-                KeyCode::Right => ui_state.submenu_selected = ui_state.submenu_hovered,
-                KeyCode::Up => {
+                KeyCode::Right if ui_state.input_mode.is_none() => {
+                    ui_state.submenu_selected = ui_state.submenu_hovered
+                }
+                KeyCode::Up if ui_state.input_mode.is_none() => {
                     if let Some(n) = ui_state.submenu_hovered
                         && n > 0
                     {
                         ui_state.submenu_hovered = Some(n - 1)
                     }
                 }
-                KeyCode::Down => match ui_state.home_state {
+                KeyCode::Down if ui_state.input_mode.is_none() => match ui_state.home_state {
                     HomeOptions::PrivateChat => {
                         if let Some(n) = ui_state.submenu_hovered
                             && n < private_chat_menu::PRIVATE_CHAT_MODES_MAX_INDEX
@@ -243,7 +246,7 @@ fn main() {
                             ui_state.username.pop();
                         }
 
-                        KeyCode::Enter => {
+                        KeyCode::Enter | KeyCode::Right => {
                             if ui_state.username.len() >= 3 {
                                 ui_state.input_mode = None;
                                 ui_state.previous_text.clear();
@@ -303,5 +306,10 @@ fn main() {
     }
 
     ratatui::restore();
-    println!("Bye from LAN Party!");
+
+    if ui_state.error.is_some() {
+        println!("An error occurred while rendering the terminal.");
+    } else {
+        println!("Bye from LAN Party!");
+    }
 }
