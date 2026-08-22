@@ -12,11 +12,12 @@ pub const GROUP_CHAT_MODES_MAX_INDEX: usize = 2;
 pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let colors = ui_state.theme.colors();
 
-    let [_, title, _, options, _] = Layout::vertical([
+    let [_, title, _, options, _, warning] = Layout::vertical([
         Constraint::Percentage(10),
         Constraint::Percentage(20),
         Constraint::Percentage(5),
         Constraint::Percentage(50),
+        Constraint::Percentage(5),
         Constraint::Percentage(10),
     ])
     .areas(area);
@@ -193,6 +194,13 @@ pub fn draw_group_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiSt
             .style(description_style)
             .alignment(Alignment::Center),
         back_description,
+    );
+
+    frame.render_widget(
+        Paragraph::new("You cant go back after selecting a chat mode")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        warning,
     );
 }
 

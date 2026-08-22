@@ -465,11 +465,9 @@ fn main() {
                                         loop {
                                             if let Ok(host_info) =
                                                 receive_udp_packets_from_broadcast()
+                                                && host_discovery_tx_clone.send(host_info).is_err()
                                             {
-                                                if host_discovery_tx_clone.send(host_info).is_err()
-                                                {
-                                                    break;
-                                                }
+                                                break;
                                             }
                                         }
                                     });
@@ -482,69 +480,67 @@ fn main() {
                                         gc_client_state.discovered_hosts.insert(host_ip, host_name);
                                     }
 
-                                    if event::poll(Duration::from_millis(16)).unwrap_or(false) {
-                                        if let Event::Key(key_event) = match event::read() {
+                                    if event::poll(Duration::from_millis(16)).unwrap_or(false)
+                                        && let Event::Key(key_event) = match event::read() {
                                             Ok(event) => event,
                                             Err(err) => {
                                                 ui_state.error = Some(err.kind());
                                                 continue;
                                             }
-                                        } {
-                                            match key_event.code {
-                                                KeyCode::Enter if ui_state.input_mode.is_none() => {
-                                                    ui_state.input = gc_client_state
-                                                        .discovered_hosts
-                                                        .keys()
-                                                        .next()
-                                                        .map(|ip| ip.to_string())
-                                                        .unwrap_or_default();
+                                        }
+                                    {
+                                        match key_event.code {
+                                            KeyCode::Enter if ui_state.input_mode.is_none() => {
+                                                ui_state.input = gc_client_state
+                                                    .discovered_hosts
+                                                    .keys()
+                                                    .next()
+                                                    .map(|ip| ip.to_string())
+                                                    .unwrap_or_default();
 
-                                                    ui_state.input_mode =
-                                                        Some(InputMode::GroupChat);
-                                                }
+                                                ui_state.input_mode = Some(InputMode::GroupChat);
+                                            }
 
-                                                KeyCode::Char(c)
-                                                    if ui_state.input_mode
-                                                        == Some(InputMode::GroupChat) =>
+                                            KeyCode::Char(c)
+                                                if ui_state.input_mode
+                                                    == Some(InputMode::GroupChat) =>
+                                            {
+                                                if (c.is_ascii_digit() || c == '.')
+                                                    && ui_state.input.len() < 15
                                                 {
-                                                    if (c.is_ascii_digit() || c == '.')
-                                                        && ui_state.input.len() < 15
-                                                    {
-                                                        ui_state.input.push(c);
-                                                    }
+                                                    ui_state.input.push(c);
                                                 }
+                                            }
 
-                                                KeyCode::Backspace
-                                                    if ui_state.input_mode
-                                                        == Some(InputMode::GroupChat) =>
-                                                {
-                                                    ui_state.input.pop();
-                                                }
+                                            KeyCode::Backspace
+                                                if ui_state.input_mode
+                                                    == Some(InputMode::GroupChat) =>
+                                            {
+                                                ui_state.input.pop();
+                                            }
 
-                                                KeyCode::Enter | KeyCode::Right
-                                                    if ui_state.input_mode
-                                                        == Some(InputMode::GroupChat) =>
-                                                {
-                                                    if let Ok(ip) = ui_state.input.parse::<IpAddr>()
-                                                    {
-                                                        gc_client_state.host_ip = Some(ip);
-                                                        gc_client_state.host_decided = true;
+                                            KeyCode::Enter | KeyCode::Right
+                                                if ui_state.input_mode
+                                                    == Some(InputMode::GroupChat) =>
+                                            {
+                                                if let Ok(ip) = ui_state.input.parse::<IpAddr>() {
+                                                    gc_client_state.host_ip = Some(ip);
+                                                    gc_client_state.host_decided = true;
 
-                                                        ui_state.input.clear();
-                                                        ui_state.input_mode = None;
-                                                    }
-                                                }
-
-                                                KeyCode::Esc
-                                                    if ui_state.input_mode
-                                                        == Some(InputMode::GroupChat) =>
-                                                {
                                                     ui_state.input.clear();
                                                     ui_state.input_mode = None;
                                                 }
-
-                                                _ => {}
                                             }
+
+                                            KeyCode::Esc
+                                                if ui_state.input_mode
+                                                    == Some(InputMode::GroupChat) =>
+                                            {
+                                                ui_state.input.clear();
+                                                ui_state.input_mode = None;
+                                            }
+
+                                            _ => {}
                                         }
                                     }
                                 }
