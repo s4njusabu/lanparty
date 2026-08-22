@@ -65,7 +65,7 @@ pub fn draw_group_chat_selector(
 
     frame.render_widget(
         Paragraph::new(host_lines)
-            .style(description_style)
+            .style(text_style)
             .alignment(Alignment::Center),
         hosts_inner.inner(Margin {
             horizontal: 0,
@@ -99,13 +99,19 @@ pub fn draw_group_chat_selector(
 
     frame.render_widget(
         Paragraph::new(connect_ip)
-            .style(description_style)
+            .style(text_style)
             .alignment(Alignment::Center),
         input_inner,
     );
 
+    let description_text = if ui_state.input_mode.is_some() {
+        "Enter to connect    Esc to cancel"
+    } else {
+        "Enter twice to connect    Esc to cancel"
+    };
+
     frame.render_widget(
-        Paragraph::new("Enter to connect    Esc to cancel")
+        Paragraph::new(description_text)
             .style(description_style)
             .alignment(Alignment::Center),
         description,

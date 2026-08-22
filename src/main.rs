@@ -80,12 +80,16 @@ fn main() {
                         if let Some(mode) = ui_state.gc_mode {
                             match mode {
                                 GroupChatMode::Client => {
-                                    gc_selector::draw_group_chat_selector(
-                                        frame,
-                                        inner,
-                                        &ui_state,
-                                        &gc_client_state,
-                                    );
+                                    if !gc_client_state.host_decided {
+                                        gc_selector::draw_group_chat_selector(
+                                            frame,
+                                            inner,
+                                            &ui_state,
+                                            &gc_client_state,
+                                        );
+                                    } else {
+                                        gc_client::draw_client(frame, inner, &ui_state);
+                                    }
                                 }
                                 GroupChatMode::Host => gc_host::draw_host(frame, inner, &ui_state),
                             }
@@ -456,17 +460,21 @@ fn main() {
                                     gc_client_state.ran_once = true;
 
                                     let host_discovery_tx_clone = host_discovery_tx.clone();
+
                                     thread::spawn(move || {
                                         loop {
                                             if let Ok(host_info) =
                                                 receive_udp_packets_from_broadcast()
-                                                && host_discovery_tx_clone.send(host_info).is_err()
                                             {
-                                                break;
+                                                if host_discovery_tx_clone.send(host_info).is_err()
+                                                {
+                                                    break;
+                                                }
                                             }
                                         }
                                     });
                                 }
+
                                 if !gc_client_state.host_decided {
                                     while let Ok((host_ip, host_name)) =
                                         host_discovery_rx.try_recv()
@@ -493,6 +501,46 @@ fn main() {
 
                                                     ui_state.input_mode =
                                                         Some(InputMode::GroupChat);
+                                                }
+
+                                                KeyCode::Char(c)
+                                                    if ui_state.input_mode
+                                                        == Some(InputMode::GroupChat) =>
+                                                {
+                                                    if (c.is_ascii_digit() || c == '.')
+                                                        && ui_state.input.len() < 15
+                                                    {
+                                                        ui_state.input.push(c);
+                                                    }
+                                                }
+
+                                                KeyCode::Backspace
+                                                    if ui_state.input_mode
+                                                        == Some(InputMode::GroupChat) =>
+                                                {
+                                                    ui_state.input.pop();
+                                                }
+
+                                                KeyCode::Enter | KeyCode::Right
+                                                    if ui_state.input_mode
+                                                        == Some(InputMode::GroupChat) =>
+                                                {
+                                                    if let Ok(ip) = ui_state.input.parse::<IpAddr>()
+                                                    {
+                                                        gc_client_state.host_ip = Some(ip);
+                                                        gc_client_state.host_decided = true;
+
+                                                        ui_state.input.clear();
+                                                        ui_state.input_mode = None;
+                                                    }
+                                                }
+
+                                                KeyCode::Esc
+                                                    if ui_state.input_mode
+                                                        == Some(InputMode::GroupChat) =>
+                                                {
+                                                    ui_state.input.clear();
+                                                    ui_state.input_mode = None;
                                                 }
 
                                                 _ => {}
