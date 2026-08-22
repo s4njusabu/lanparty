@@ -1,8 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    thread,
-    time::Duration,
-};
+use std::{net::IpAddr, sync::mpsc, thread, time::Duration};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -11,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    services::network::send_udp_packets_to_broadcast,
+    services::network::{receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast},
     states::{
         group_chat_state::{self, User},
         private_chat_state::PrivateChatState,
@@ -48,6 +44,9 @@ fn main() {
     let mut gc_host_state = group_chat_state::GroupChatHostState::new();
     let mut gc_client_state = group_chat_state::GroupChatClientState::new();
 
+    // Channels
+    let (host_discovery_tx, host_discovery_rx) = mpsc::channel::<(IpAddr, String)>();
+
     loop {
         // Render block
         if let Err(err) = terminal.draw(|frame| {
@@ -81,7 +80,12 @@ fn main() {
                         if let Some(mode) = ui_state.gc_mode {
                             match mode {
                                 GroupChatMode::Client => {
-                                    gc_selector::draw_group_chat_selector(frame, inner, &ui_state, &gc_client_state);
+                                    gc_selector::draw_group_chat_selector(
+                                        frame,
+                                        inner,
+                                        &ui_state,
+                                        &gc_client_state,
+                                    );
                                 }
                                 GroupChatMode::Host => gc_host::draw_host(frame, inner, &ui_state),
                             }
@@ -278,7 +282,7 @@ fn main() {
                         }
 
                         KeyCode::Enter | KeyCode::Right => {
-                            if let Ok(ip) = ui_state.input.parse::<Ipv4Addr>() {
+                            if let Ok(ip) = ui_state.input.parse::<IpAddr>() {
                                 private_chat_state.connected_user_ip = Some(ip);
 
                                 ui_state.input.clear();
@@ -298,7 +302,34 @@ fn main() {
 
                         _ => {}
                     },
-                    InputMode::GroupChat => {}
+                    InputMode::GroupChat => match key_event.code {
+                        KeyCode::Char(c) => {
+                            if (c.is_ascii_digit() || c == '.') && ui_state.input.len() < 15 {
+                                ui_state.input.push(c);
+                            }
+                        }
+
+                        KeyCode::Backspace => {
+                            ui_state.input.pop();
+                        }
+
+                        KeyCode::Enter | KeyCode::Right => {
+                            if let Ok(ip) = ui_state.input.parse::<IpAddr>() {
+                                gc_client_state.host_decided = true;
+                                gc_client_state.host_ip = Some(ip);
+
+                                ui_state.input.clear();
+                                ui_state.input_mode = None;
+                            }
+                        }
+
+                        KeyCode::Esc => {
+                            ui_state.input.clear();
+                            ui_state.input_mode = None;
+                        }
+
+                        _ => {}
+                    },
                     InputMode::ChangeUsername => match key_event.code {
                         KeyCode::Char(c) => {
                             if ui_state.username.len() < 15 {
@@ -420,7 +451,46 @@ fn main() {
                 InChat::Group => {
                     if let Some(gc_mode) = ui_state.gc_mode {
                         match gc_mode {
-                            GroupChatMode::Client => {}
+                            GroupChatMode::Client => {
+                                if !gc_client_state.ran_once {
+                                    gc_client_state.ran_once = true;
+
+                                    let host_discovery_tx_clone = host_discovery_tx.clone();
+                                    thread::spawn(move || {
+                                        loop {
+                                            if let Ok(host_info) =
+                                                receive_udp_packets_from_broadcast()
+                                                && host_discovery_tx_clone.send(host_info).is_err()
+                                            {
+                                                break;
+                                            }
+                                        }
+                                    });
+                                }
+                                if !gc_client_state.host_decided {
+                                    while let Ok((host_ip, host_name)) =
+                                        host_discovery_rx.try_recv()
+                                    {
+                                        gc_client_state.discovered_hosts.insert(host_ip, host_name);
+                                    }
+
+                                    if let Event::Key(key_event) = match event::read() {
+                                        Ok(event) => event,
+                                        Err(err) => {
+                                            ui_state.error = Some(err.kind());
+                                            continue;
+                                        }
+                                    } {
+                                        match key_event.code {
+                                            KeyCode::Enter if ui_state.input_mode.is_none() => {
+                                                ui_state.input_mode = Some(InputMode::GroupChat);
+                                            }
+
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                            }
                             GroupChatMode::Host => {
                                 // Host initialization
                                 if !gc_host_state.ran_once {
@@ -434,7 +504,8 @@ fn main() {
                                         },
                                     );
 
-                                    thread::spawn(send_udp_packets_to_broadcast);
+                                    let username = ui_state.username.clone();
+                                    thread::spawn(move || send_udp_packets_to_broadcast(&username));
                                 }
 
                                 gc_client_state.users = gc_host_state.users.clone();

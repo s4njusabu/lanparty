@@ -45,6 +45,9 @@ pub struct GroupChatClientState {
     pub users: HashMap<IpAddr, User>,
     pub messages: Vec<Message>,
     pub discovered_hosts: HashMap<IpAddr, String>,
+    pub host_decided: bool,
+    pub host_ip: Option<IpAddr>,
+    pub ran_once: bool,
 }
 
 impl GroupChatClientState {
@@ -53,6 +56,9 @@ impl GroupChatClientState {
             users: HashMap::new(),
             messages: Vec::new(),
             discovered_hosts: HashMap::new(),
+            host_decided: false,
+            host_ip: None,
+            ran_once: false,
         }
     }
 }
