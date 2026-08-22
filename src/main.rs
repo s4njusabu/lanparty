@@ -267,9 +267,47 @@ fn main() {
                 }
             } else {
                 match ui_state.home_state {
-                    HomeOptions::PrivateChat => {}
-                    HomeOptions::GroupChat => {}
-                    HomeOptions::FileTransfer => {}
+                    HomeOptions::PrivateChat => {
+                        if let Some(n) = ui_state.submenu_selected.take() {
+                            match n {
+                                0 => {}
+                                1 => {
+                                    ui_state.in_home = true;
+                                    ui_state.in_submenu = false;
+                                    ui_state.submenu_hovered = Some(0);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    HomeOptions::GroupChat => {
+                        if let Some(n) = ui_state.submenu_selected.take() {
+                            match n {
+                                0 => {}
+                                1 => {}
+                                2 => {
+                                    ui_state.in_home = true;
+                                    ui_state.in_submenu = false;
+                                    ui_state.submenu_hovered = Some(0);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    HomeOptions::FileTransfer => {
+                        if let Some(n) = ui_state.submenu_selected.take() {
+                            match n {
+                                0 => {}
+                                1 => {}
+                                2 => {
+                                    ui_state.in_home = true;
+                                    ui_state.in_submenu = false;
+                                    ui_state.submenu_hovered = Some(0);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
                     HomeOptions::Profile => {
                         if let Some(n) = ui_state.submenu_selected.take() {
                             match n {
