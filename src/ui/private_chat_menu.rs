@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::states::ui_state::UiState;
+use crate::states::ui_state::{InputMode, UiState};
 pub const PRIVATE_CHAT_MODES_MAX_INDEX: usize = 1;
 
 pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
@@ -14,7 +14,7 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
     let [_, title, _, options, _] = Layout::vertical([
         Constraint::Percentage(10),
         Constraint::Percentage(20),
-        Constraint::Percentage(5),
+        Constraint::Percentage(3),
         Constraint::Percentage(50),
         Constraint::Percentage(10),
     ])
@@ -22,16 +22,23 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
 
     draw_banner(frame, title, ui_state);
 
-    let [connect_area, back_area] =
-        Layout::vertical([Constraint::Length(5), Constraint::Length(5)])
-            .spacing(1)
-            .areas(options);
+    let [info_area, connect_area, back_area] = Layout::vertical([
+        Constraint::Length(5),
+        Constraint::Length(4),
+        Constraint::Length(4),
+    ])
+    .spacing(1)
+    .areas(options);
+
+    let [info] = Layout::horizontal([Constraint::Length(40)])
+        .flex(Flex::Center)
+        .areas(info_area);
 
     let [connect, connect_description] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(connect_area);
+        Layout::vertical([Constraint::Length(3), Constraint::Length(1)]).areas(connect_area);
 
     let [back, back_description] =
-        Layout::vertical([Constraint::Length(3), Constraint::Length(2)]).areas(back_area);
+        Layout::vertical([Constraint::Length(3), Constraint::Length(1)]).areas(back_area);
 
     let [connect] = Layout::horizontal([Constraint::Length(22)])
         .flex(Flex::Center)
@@ -49,7 +56,29 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
 
     let border_style = Style::default().fg(colors.accent);
 
-    // Connect button
+    // Connection info / IP input
+    let info_block = Block::bordered()
+        .border_type(BorderType::Double)
+        .border_style(border_style);
+
+    frame.render_widget(info_block.clone(), info);
+
+    let info_inner = info_block.inner(info);
+
+    let ip_display = if ui_state.input_mode == Some(InputMode::PrivateChat) {
+        format!("{}.{}", ui_state.local_ip_prefix, ui_state.input)
+    } else {
+        format!("{}.x", ui_state.local_ip_prefix)
+    };
+
+    frame.render_widget(
+        Paragraph::new(ip_display)
+            .style(text_style)
+            .alignment(Alignment::Center),
+        info_inner,
+    );
+
+    // Connect
     let connect_block = Block::bordered()
         .border_type(BorderType::Double)
         .border_style(if ui_state.submenu_hovered == Some(0) {
@@ -87,15 +116,18 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
         );
     }
 
-    // Connect description
     frame.render_widget(
-        Paragraph::new("Enter an IP address to start a private chat")
-            .style(description_style)
-            .alignment(Alignment::Center),
+        Paragraph::new(if ui_state.input_mode == Some(InputMode::PrivateChat) {
+            "Enter to connect and Esc to cancel"
+        } else {
+            "Enter an IP address to start a private chat"
+        })
+        .style(description_style)
+        .alignment(Alignment::Center),
         connect_description,
     );
 
-    // Back button
+    // Back
     let back_block = Block::bordered()
         .border_type(BorderType::Double)
         .border_style(if ui_state.submenu_hovered == Some(1) {
@@ -133,7 +165,6 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
         );
     }
 
-    // Back description
     frame.render_widget(
         Paragraph::new("Return to the previous menu")
             .style(description_style)
