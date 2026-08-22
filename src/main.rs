@@ -474,19 +474,29 @@ fn main() {
                                         gc_client_state.discovered_hosts.insert(host_ip, host_name);
                                     }
 
-                                    if let Event::Key(key_event) = match event::read() {
-                                        Ok(event) => event,
-                                        Err(err) => {
-                                            ui_state.error = Some(err.kind());
-                                            continue;
-                                        }
-                                    } {
-                                        match key_event.code {
-                                            KeyCode::Enter if ui_state.input_mode.is_none() => {
-                                                ui_state.input_mode = Some(InputMode::GroupChat);
+                                    if event::poll(Duration::from_millis(16)).unwrap_or(false) {
+                                        if let Event::Key(key_event) = match event::read() {
+                                            Ok(event) => event,
+                                            Err(err) => {
+                                                ui_state.error = Some(err.kind());
+                                                continue;
                                             }
+                                        } {
+                                            match key_event.code {
+                                                KeyCode::Enter if ui_state.input_mode.is_none() => {
+                                                    ui_state.input = gc_client_state
+                                                        .discovered_hosts
+                                                        .keys()
+                                                        .next()
+                                                        .map(|ip| ip.to_string())
+                                                        .unwrap_or_default();
 
-                                            _ => {}
+                                                    ui_state.input_mode =
+                                                        Some(InputMode::GroupChat);
+                                                }
+
+                                                _ => {}
+                                            }
                                         }
                                     }
                                 }
