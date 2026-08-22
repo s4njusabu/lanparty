@@ -11,11 +11,12 @@ pub const PRIVATE_CHAT_MODES_MAX_INDEX: usize = 1;
 pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &UiState) {
     let colors = ui_state.theme.colors();
 
-    let [_, title, _, options, _] = Layout::vertical([
+    let [_, title, _, options, _, warning] = Layout::vertical([
         Constraint::Percentage(10),
         Constraint::Percentage(20),
         Constraint::Percentage(3),
         Constraint::Percentage(50),
+        Constraint::Percentage(5),
         Constraint::Percentage(10),
     ])
     .areas(area);
@@ -170,6 +171,13 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
             .style(description_style)
             .alignment(Alignment::Center),
         back_description,
+    );
+
+    frame.render_widget(
+        Paragraph::new("You cant go back after selecting Connect")
+            .style(description_style)
+            .alignment(Alignment::Center),
+        warning,
     );
 }
 
