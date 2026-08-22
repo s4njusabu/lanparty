@@ -1,5 +1,5 @@
 use std::{
-    net::{IpAddr, Ipv4Addr, UdpSocket},
+    net::{IpAddr, UdpSocket},
     thread,
     time::Duration,
 };
