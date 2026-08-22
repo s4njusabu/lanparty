@@ -44,7 +44,7 @@ impl GroupChatHostState {
 pub struct GroupChatClientState {
     pub users: HashMap<IpAddr, User>,
     pub messages: Vec<Message>,
-    pub discovered_hosts: HashMap<IpAddr, String>
+    pub discovered_hosts: HashMap<IpAddr, String>,
 }
 
 impl GroupChatClientState {

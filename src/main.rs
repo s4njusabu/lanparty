@@ -1,5 +1,7 @@
 use std::{
-    net::{IpAddr, Ipv4Addr}, thread, time::Duration,
+    net::{IpAddr, Ipv4Addr},
+    thread,
+    time::Duration,
 };
 
 use ratatui::{
@@ -9,15 +11,17 @@ use ratatui::{
 };
 
 use crate::{
-    services::network::send_udp_packets_to_broadcast, states::{
+    services::network::send_udp_packets_to_broadcast,
+    states::{
         group_chat_state::{self, User},
         private_chat_state::PrivateChatState,
         ui_state::{GroupChatMode, HomeOptions, InChat, InputMode, UiState},
-    }, ui::{
+    },
+    ui::{
         border,
         chat::{gc_client, gc_host, private_chat},
-        error_page, file_transfer_menu, group_chat_menu, home, private_chat_menu, profile_menu,
-        themes_menu,
+        error_page, file_transfer_menu, gc_selector, group_chat_menu, home, private_chat_menu,
+        profile_menu, themes_menu,
     },
 };
 
@@ -77,7 +81,7 @@ fn main() {
                         if let Some(mode) = ui_state.gc_mode {
                             match mode {
                                 GroupChatMode::Client => {
-                                    gc_client::draw_client(frame, inner, &ui_state)
+                                    gc_selector::draw_group_chat_selector(frame, inner, &ui_state, &gc_client_state);
                                 }
                                 GroupChatMode::Host => gc_host::draw_host(frame, inner, &ui_state),
                             }
