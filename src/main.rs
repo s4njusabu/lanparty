@@ -7,13 +7,17 @@ use ratatui::{
 };
 
 use crate::{
+    services::system,
     states::{
+        group_chat_state::{self, User},
         private_chat_state::PrivateChatState,
         ui_state::{GroupChatMode, HomeOptions, InChat, InputMode, UiState},
     },
     ui::{
-        border, error_page, file_transfer_menu, group_chat_menu, group_chat_modes::private_chat,
-        home, private_chat_menu, profile_menu, themes_menu,
+        border,
+        chat::{gc_client, gc_host, private_chat},
+        error_page, file_transfer_menu, group_chat_menu, home, private_chat_menu, profile_menu,
+        themes_menu,
     },
 };
 
@@ -23,10 +27,22 @@ pub mod themes;
 mod ui;
 
 fn main() {
+    if !services::system::ip_command_exists() {
+        println!("\"ip\" command not found");
+        if let Some(command) = services::system::command_to_install_ip() {
+            println!("Install it with: {command}");
+        }
+
+        return;
+    }
+
     let mut terminal = ratatui::init();
 
+    // States
     let mut ui_state = UiState::new();
     let mut private_chat_state = PrivateChatState::new();
+    let mut gc_host_state = group_chat_state::GroupChatHostState::new();
+    let mut gc_client_state = group_chat_state::GroupChatClientState::new();
 
     loop {
         // Render block
@@ -60,8 +76,10 @@ fn main() {
                     InChat::Group => {
                         if let Some(mode) = ui_state.gc_mode {
                             match mode {
-                                GroupChatMode::Client => private_chat::draw_host(frame, inner),
-                                GroupChatMode::Host => private_chat::draw_host(frame, inner),
+                                GroupChatMode::Client => {
+                                    gc_client::draw_client(frame, inner, &ui_state)
+                                }
+                                GroupChatMode::Host => gc_host::draw_host(frame, inner, &ui_state),
                             }
                         }
                     }
@@ -385,6 +403,36 @@ fn main() {
                                     ui_state.submenu_hovered = Some(0);
                                 }
                                 _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        } else if ui_state.in_chat.is_some()
+            && let Some(chat_mode) = ui_state.in_chat
+        {
+            match chat_mode {
+                InChat::Private => {}
+                InChat::Group => {
+                    if let Some(gc_mode) = ui_state.gc_mode {
+                        match gc_mode {
+                            GroupChatMode::Client => {}
+                            GroupChatMode::Host => {
+                                // Host initialization
+                                if !gc_host_state.added_host {
+                                    gc_host_state.added_host = true;
+
+                                    let host_ip: Ipv4Addr = ui_state.local_ip.parse().unwrap();
+                                    gc_host_state.users.insert(
+                                        host_ip,
+                                        User {
+                                            username: ui_state.username.clone(),
+                                            online: true,
+                                        },
+                                    );
+                                }
+
+                                gc_client_state.users = gc_host_state.users.clone();
                             }
                         }
                     }
