@@ -66,9 +66,9 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
     let info_inner = info_block.inner(info);
 
     let ip_display = if ui_state.input_mode == Some(InputMode::PrivateChat) {
-        ui_state.input.as_str()
+        ui_state.input.clone()
     } else {
-            "Example: 192.168.1.10"
+        format!("Your IP: {}", ui_state.local_ip)
     };
 
     frame.render_widget(
@@ -120,7 +120,7 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
         Paragraph::new(if ui_state.input_mode == Some(InputMode::PrivateChat) {
             "Enter to connect and Esc to cancel"
         } else {
-            "Enter an IP address to start a private chat"
+            "Enter the IP address you wanna start a private chat with"
         })
         .style(description_style)
         .alignment(Alignment::Center),
