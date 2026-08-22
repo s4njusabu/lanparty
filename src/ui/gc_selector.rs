@@ -86,12 +86,16 @@ pub fn draw_group_chat_selector(
 
     frame.render_widget(input_block, input);
 
-    let connect_ip = gc_client_state
-        .discovered_hosts
-        .keys()
-        .next()
-        .map(|ip| ip.to_string())
-        .unwrap_or_else(|| "-".to_string());
+    let connect_ip = if ui_state.input_mode.is_some() {
+        ui_state.input.clone()
+    } else {
+        gc_client_state
+            .discovered_hosts
+            .keys()
+            .next()
+            .map(|ip| ip.to_string())
+            .unwrap_or_else(|| "-".to_string())
+    };
 
     frame.render_widget(
         Paragraph::new(connect_ip)

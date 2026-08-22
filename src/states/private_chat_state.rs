@@ -1,7 +1,7 @@
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 
 pub struct PrivateChatState {
-    pub connected_user_ip: Option<Ipv4Addr>,
+    pub connected_user_ip: Option<IpAddr>,
 }
 
 impl PrivateChatState {
