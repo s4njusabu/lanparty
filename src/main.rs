@@ -1,4 +1,6 @@
-use std::{net::Ipv4Addr, time::Duration};
+use std::{
+    net::{IpAddr, Ipv4Addr}, thread, time::Duration,
+};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -7,13 +9,11 @@ use ratatui::{
 };
 
 use crate::{
-    services::system,
-    states::{
+    services::network::send_udp_packets_to_broadcast, states::{
         group_chat_state::{self, User},
         private_chat_state::PrivateChatState,
         ui_state::{GroupChatMode, HomeOptions, InChat, InputMode, UiState},
-    },
-    ui::{
+    }, ui::{
         border,
         chat::{gc_client, gc_host, private_chat},
         error_page, file_transfer_menu, group_chat_menu, home, private_chat_menu, profile_menu,
@@ -419,17 +419,18 @@ fn main() {
                             GroupChatMode::Client => {}
                             GroupChatMode::Host => {
                                 // Host initialization
-                                if !gc_host_state.added_host {
-                                    gc_host_state.added_host = true;
+                                if !gc_host_state.ran_once {
+                                    gc_host_state.ran_once = true;
 
-                                    let host_ip: Ipv4Addr = ui_state.local_ip.parse().unwrap();
                                     gc_host_state.users.insert(
-                                        host_ip,
+                                        ui_state.local_ip.parse::<IpAddr>().unwrap(),
                                         User {
                                             username: ui_state.username.clone(),
                                             online: true,
                                         },
                                     );
+
+                                    thread::spawn(send_udp_packets_to_broadcast);
                                 }
 
                                 gc_client_state.users = gc_host_state.users.clone();

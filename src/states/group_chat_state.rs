@@ -2,7 +2,7 @@
 
 use std::{
     collections::HashMap,
-    net::{IpAddr, Ipv4Addr, TcpStream},
+    net::{IpAddr, TcpStream},
 };
 
 use serde::{Deserialize, Serialize};
@@ -26,9 +26,9 @@ impl GroupChatState {
 // V2 rewrite
 
 pub struct GroupChatHostState {
-    pub users: HashMap<Ipv4Addr, User>,
+    pub users: HashMap<IpAddr, User>,
     pub messages: Vec<Message>,
-    pub added_host: bool,
+    pub ran_once: bool,
 }
 
 impl GroupChatHostState {
@@ -36,14 +36,15 @@ impl GroupChatHostState {
         Self {
             users: HashMap::new(),
             messages: Vec::new(),
-            added_host: false,
+            ran_once: false,
         }
     }
 }
 
 pub struct GroupChatClientState {
-    pub users: HashMap<Ipv4Addr, User>,
+    pub users: HashMap<IpAddr, User>,
     pub messages: Vec<Message>,
+    pub discovered_hosts: HashMap<IpAddr, String>
 }
 
 impl GroupChatClientState {
@@ -51,12 +52,13 @@ impl GroupChatClientState {
         Self {
             users: HashMap::new(),
             messages: Vec::new(),
+            discovered_hosts: HashMap::new(),
         }
     }
 }
 
 pub struct Message {
-    pub sender: Ipv4Addr,
+    pub sender: IpAddr,
     pub message: String,
 }
 
