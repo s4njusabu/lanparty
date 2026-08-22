@@ -2,6 +2,7 @@ pub mod border;
 pub mod chat;
 pub mod error_page;
 pub mod file_transfer_menu;
+pub mod gc_selector;
 pub mod group_chat_menu;
 pub mod home;
 pub mod private_chat_menu;
