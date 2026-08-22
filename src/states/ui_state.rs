@@ -31,7 +31,6 @@ pub struct UiState {
 
     // IP address
     pub local_ip: String,
-    pub local_ip_prefix: String,
 
     // input state
     pub input_mode: Option<InputMode>,
@@ -79,12 +78,6 @@ impl UiState {
             String::from("UNKNOWN")
         };
 
-        let prefix = if let Some((take, _)) = local_ip.rsplit_once(".") {
-            take.to_string()
-        } else {
-            "UNKNOWN".to_string()
-        };
-
         Self {
             theme: Theme::Dark,
             username: username::default_username(),
@@ -111,7 +104,6 @@ impl UiState {
 
             // IP address
             local_ip,
-            local_ip_prefix: prefix,
 
             input: String::new(),
             input_mode: None,

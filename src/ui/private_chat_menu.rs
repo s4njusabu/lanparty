@@ -56,7 +56,7 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
 
     let border_style = Style::default().fg(colors.accent);
 
-    // Connection info / IP input
+    // IP address
     let info_block = Block::bordered()
         .border_type(BorderType::Double)
         .border_style(border_style);
@@ -66,9 +66,9 @@ pub fn draw_private_chat_modes_menu(frame: &mut Frame, area: Rect, ui_state: &Ui
     let info_inner = info_block.inner(info);
 
     let ip_display = if ui_state.input_mode == Some(InputMode::PrivateChat) {
-        format!("{}.{}", ui_state.local_ip_prefix, ui_state.input)
+        ui_state.input.as_str()
     } else {
-        format!("{}.x", ui_state.local_ip_prefix)
+            "Example: 192.168.1.10"
     };
 
     frame.render_widget(
