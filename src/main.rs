@@ -246,7 +246,7 @@ fn main() {
                 match mode {
                     InputMode::PrivateChat => match key_event.code {
                         KeyCode::Char(c) => {
-                            if c.is_ascii_digit() && ui_state.input.len() < 3 {
+                            if (c.is_ascii_digit() || c == '.') && ui_state.input.len() < 15 {
                                 ui_state.input.push(c);
                             }
                         }
@@ -256,11 +256,7 @@ fn main() {
                         }
 
                         KeyCode::Enter | KeyCode::Right => {
-                            if let Ok(last_octet) = ui_state.input.parse::<u8>()
-                                && let Ok(ip) =
-                                    format!("{}.{}", ui_state.local_ip_prefix, last_octet)
-                                        .parse::<Ipv4Addr>()
-                            {
+                            if let Ok(ip) = ui_state.input.parse::<Ipv4Addr>() {
                                 private_chat_state.connected_user_ip = Some(ip);
 
                                 ui_state.input.clear();
@@ -287,11 +283,9 @@ fn main() {
                                 ui_state.username.push(c);
                             }
                         }
-
                         KeyCode::Backspace => {
                             ui_state.username.pop();
                         }
-
                         KeyCode::Enter | KeyCode::Right => {
                             if ui_state.username.len() >= 3 {
                                 ui_state.input_mode = None;
@@ -299,7 +293,6 @@ fn main() {
                                 ui_state.submenu_selected = None;
                             }
                         }
-
                         KeyCode::Esc => {
                             ui_state.username = ui_state.previous_text.clone();
                             ui_state.previous_text.clear();
