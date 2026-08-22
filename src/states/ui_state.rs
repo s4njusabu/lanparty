@@ -1,7 +1,7 @@
 use std::io::ErrorKind;
 
 use crate::{
-    services::{interface, username},
+    services::{system, username},
     themes::Theme,
 };
 
@@ -72,7 +72,7 @@ pub enum GroupChatMode {
 
 impl UiState {
     pub fn new() -> Self {
-        let local_ip = if let Some(ip) = interface::get_local_ip() {
+        let local_ip = if let Some(ip) = system::get_local_ip() {
             ip
         } else {
             String::from("UNKNOWN")
