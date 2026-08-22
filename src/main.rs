@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{net::Ipv4Addr, time::Duration};
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
@@ -7,10 +7,13 @@ use ratatui::{
 };
 
 use crate::{
-    states::ui_state::{HomeOptions, InChat, InputMode, UiState},
+    states::{
+        private_chat_state::PrivateChatState,
+        ui_state::{GroupChatMode, HomeOptions, InChat, InputMode, UiState},
+    },
     ui::{
-        border, error_page, file_transfer_menu, group_chat_menu, home, private_chat_menu,
-        profile_menu, themes_menu,
+        border, error_page, file_transfer_menu, group_chat_menu, group_chat_modes::private_chat,
+        home, private_chat_menu, profile_menu, themes_menu,
     },
 };
 
@@ -23,6 +26,7 @@ fn main() {
     let mut terminal = ratatui::init();
 
     let mut ui_state = UiState::new();
+    let mut private_chat_state = PrivateChatState::new();
 
     loop {
         // Render block
@@ -47,6 +51,20 @@ fn main() {
                     3 => profile_menu::draw_profile_menu(frame, inner, &ui_state),
                     4 => themes_menu::draw_themes_menu(frame, inner, &ui_state),
                     _ => {}
+                }
+            } else if ui_state.in_chat.is_some()
+                && let Some(mode) = ui_state.in_chat
+            {
+                match mode {
+                    InChat::Private => private_chat::draw_host(frame, inner),
+                    InChat::Group => {
+                        if let Some(mode) = ui_state.gc_mode {
+                            match mode {
+                                GroupChatMode::Client => private_chat::draw_host(frame, inner),
+                                GroupChatMode::Host => private_chat::draw_host(frame, inner),
+                            }
+                        }
+                    }
                 }
             }
         }) {
@@ -158,15 +176,7 @@ fn main() {
             // Key logic layer 1
             match key_event.code {
                 KeyCode::Enter if ui_state.input_mode.is_none() => {
-                    if ui_state.home_state == HomeOptions::PrivateChat {
-                        ui_state.submenu_selected = ui_state.submenu_hovered;
-                        ui_state.in_chat = Some(InChat::Private);
-                    } else if ui_state.home_state == HomeOptions::GroupChat {
-                        ui_state.submenu_selected = ui_state.submenu_hovered;
-                        ui_state.in_chat = Some(InChat::Group);
-                    } else {
-                        ui_state.submenu_selected = ui_state.submenu_hovered;
-                    }
+                    ui_state.submenu_selected = ui_state.submenu_hovered;
                 }
                 KeyCode::Left if ui_state.input_mode.is_none() => {
                     ui_state.in_home = true;
@@ -234,7 +244,42 @@ fn main() {
             if let Some(mode) = ui_state.input_mode {
                 // Key logic layer 2
                 match mode {
-                    InputMode::PrivateChat => {}
+                    InputMode::PrivateChat => match key_event.code {
+                        KeyCode::Char(c) => {
+                            if c.is_ascii_digit() && ui_state.input.len() < 3 {
+                                ui_state.input.push(c);
+                            }
+                        }
+
+                        KeyCode::Backspace => {
+                            ui_state.input.pop();
+                        }
+
+                        KeyCode::Enter | KeyCode::Right => {
+                            if let Ok(last_octet) = ui_state.input.parse::<u8>()
+                                && let Ok(ip) =
+                                    format!("{}.{}", ui_state.local_ip_prefix, last_octet)
+                                        .parse::<Ipv4Addr>()
+                            {
+                                private_chat_state.connected_user_ip = Some(ip);
+
+                                ui_state.input.clear();
+                                ui_state.input_mode = None;
+                                ui_state.submenu_selected = None;
+
+                                ui_state.in_submenu = false;
+                                ui_state.in_chat = Some(InChat::Private);
+                            }
+                        }
+
+                        KeyCode::Esc => {
+                            ui_state.input.clear();
+                            ui_state.input_mode = None;
+                            ui_state.submenu_selected = None;
+                        }
+
+                        _ => {}
+                    },
                     InputMode::GroupChat => {}
                     InputMode::ChangeUsername => match key_event.code {
                         KeyCode::Char(c) => {
@@ -270,7 +315,10 @@ fn main() {
                     HomeOptions::PrivateChat => {
                         if let Some(n) = ui_state.submenu_selected.take() {
                             match n {
-                                0 => {}
+                                0 => {
+                                    ui_state.input.clear();
+                                    ui_state.input_mode = Some(InputMode::PrivateChat);
+                                }
                                 1 => {
                                     ui_state.in_home = true;
                                     ui_state.in_submenu = false;
@@ -283,8 +331,16 @@ fn main() {
                     HomeOptions::GroupChat => {
                         if let Some(n) = ui_state.submenu_selected.take() {
                             match n {
-                                0 => {}
-                                1 => {}
+                                0 => {
+                                    ui_state.in_chat = Some(InChat::Group);
+                                    ui_state.gc_mode = Some(GroupChatMode::Client);
+                                    ui_state.in_submenu = false;
+                                }
+                                1 => {
+                                    ui_state.in_chat = Some(InChat::Group);
+                                    ui_state.gc_mode = Some(GroupChatMode::Host);
+                                    ui_state.in_submenu = false;
+                                }
                                 2 => {
                                     ui_state.in_home = true;
                                     ui_state.in_submenu = false;
