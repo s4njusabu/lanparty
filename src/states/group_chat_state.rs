@@ -73,3 +73,8 @@ pub struct User {
     pub username: String,
     pub online: bool,
 }
+
+pub enum Packet {
+    User { ip: IpAddr, username: String },
+    Message(Message),
+}
