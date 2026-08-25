@@ -6,9 +6,14 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph, Wrap},
 };
 
-use crate::states::ui_state::UiState;
+use crate::states::{group_chat_state::GroupChatHostState, ui_state::UiState};
 
-pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
+pub fn draw_host(
+    frame: &mut Frame,
+    inner: Rect,
+    ui_state: &UiState,
+    gc_host_state: &GroupChatHostState,
+) {
     let colors = ui_state.theme.colors();
 
     let area = inner.inner(Margin {
@@ -22,6 +27,7 @@ pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
     let [messages_area, info_area] =
         Layout::horizontal([Constraint::Min(1), Constraint::Length(30)]).areas(chat_area);
 
+    // Messages
     let messages_block = Block::bordered()
         .title(
             Line::from(" Messages ").style(
@@ -38,45 +44,37 @@ pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
 
     frame.render_widget(messages_block, messages_area);
 
+    let mut messages = Vec::new();
+
+    for message in &gc_host_state.messages {
+        let username = gc_host_state
+            .users
+            .get(&message.sender)
+            .map_or("Unknown", |user| user.username.as_str());
+
+        messages.push(Line::from(vec![
+            Span::styled(
+                username,
+                Style::default()
+                    .fg(colors.accent)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(": ", Style::default().fg(colors.text)),
+            Span::styled(&message.message, Style::default().fg(colors.text)),
+        ]));
+
+        messages.push(Line::default());
+    }
+
     frame.render_widget(
-        Paragraph::new(vec![
-            Line::from(vec![
-                Span::styled(
-                    "Sanju",
-                    Style::default()
-                        .fg(colors.accent)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(": Hey everyone", Style::default().fg(colors.text)),
-            ]),
-            Line::default(),
-            Line::from(vec![
-                Span::styled(
-                    "Alex",
-                    Style::default()
-                        .fg(colors.accent)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(": What's up?", Style::default().fg(colors.text)),
-            ]),
-            Line::default(),
-            Line::from(vec![
-                Span::styled(
-                    "You",
-                    Style::default()
-                        .fg(colors.accent)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(": Testing group chat", Style::default().fg(colors.text)),
-            ]),
-        ])
-        .wrap(Wrap { trim: false }),
+        Paragraph::new(messages).wrap(Wrap { trim: false }),
         messages_inner.inner(Margin {
             horizontal: 3,
             vertical: 1,
         }),
     );
 
+    // Users
     let users_block = Block::bordered()
         .title(
             Line::from(" Users ").style(
@@ -92,50 +90,45 @@ pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
 
     frame.render_widget(users_block, info_area);
 
+    let mut users = Vec::new();
+
+    for (ip, user) in &gc_host_state.users {
+        let status_color = if user.online {
+            ratatui::style::Color::LightGreen
+        } else {
+            ratatui::style::Color::LightRed
+        };
+
+        users.push(Line::from(vec![
+            Span::styled("● ", Style::default().fg(status_color)),
+            Span::styled(
+                &user.username,
+                Style::default()
+                    .fg(colors.text)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]));
+
+        users.push(Line::styled(
+            format!("  {ip}"),
+            Style::default().fg(colors.text),
+        ));
+
+        users.push(Line::default());
+    }
+
     frame.render_widget(
-        Paragraph::new(vec![
-            Line::from(vec![
-                Span::styled("● ", Style::default().fg(ratatui::style::Color::LightGreen)),
-                Span::styled(
-                    "Sanju",
-                    Style::default()
-                        .fg(colors.text)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ]),
-            Line::styled("  192.168.1.10", Style::default().fg(colors.text)),
-            Line::default(),
-            Line::from(vec![
-                Span::styled("● ", Style::default().fg(ratatui::style::Color::LightGreen)),
-                Span::styled(
-                    "Alex",
-                    Style::default()
-                        .fg(colors.text)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ]),
-            Line::styled("  192.168.1.11", Style::default().fg(colors.text)),
-            Line::default(),
-            Line::from(vec![
-                Span::styled("● ", Style::default().fg(ratatui::style::Color::LightRed)),
-                Span::styled(
-                    "Bob",
-                    Style::default()
-                        .fg(colors.text)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ]),
-            Line::styled("  192.168.1.12", Style::default().fg(colors.text)),
-        ]),
+        Paragraph::new(users),
         users_inner.inner(Margin {
             horizontal: 2,
             vertical: 1,
         }),
     );
 
+    // Input
     let input_block = Block::bordered()
         .title(
-            Line::from(" Input - Sanju ").style(
+            Line::from(format!(" Input - {} ", ui_state.username)).style(
                 Style::default()
                     .fg(colors.text)
                     .add_modifier(Modifier::BOLD),
@@ -148,8 +141,21 @@ pub fn draw_host(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
 
     frame.render_widget(input_block, input_area);
 
+    let millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
+    let cursor_visible = (millis / 500) % 2 == 0;
+
+    let input = if cursor_visible {
+        format!("{}█", ui_state.input)
+    } else {
+        ui_state.input.clone()
+    };
+
     frame.render_widget(
-        Paragraph::new("Type your message here...")
+        Paragraph::new(input)
             .style(Style::default().fg(colors.text))
             .wrap(Wrap { trim: false }),
         input_inner.inner(Margin {

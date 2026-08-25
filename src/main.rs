@@ -7,9 +7,12 @@ use ratatui::{
 };
 
 use crate::{
-    services::network::{receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast},
+    services::{
+        network::{receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast},
+        system,
+    },
     states::{
-        group_chat_state::{self, User},
+        group_chat_state::{self, Message, User},
         private_chat_state::PrivateChatState,
         ui_state::{GroupChatMode, HomeOptions, InChat, InputMode, UiState},
     },
@@ -44,6 +47,13 @@ fn main() {
     let mut gc_host_state = group_chat_state::GroupChatHostState::new();
     let mut gc_client_state = group_chat_state::GroupChatClientState::new();
 
+    // Init changes for states
+    if let Some(ip) = system::get_local_ip() {
+        ui_state.local_ip = ip;
+    } else {
+        ui_state.error = Some(std::io::Error::other("Failed to get IP address"));
+    }
+
     // Channels
     let (host_discovery_tx, host_discovery_rx) = mpsc::channel::<(IpAddr, String)>();
 
@@ -56,7 +66,7 @@ fn main() {
             );
             let inner = border::draw_border(frame, &ui_state);
 
-            if let Some(err) = ui_state.error.take() {
+            if let Some(err) = &ui_state.error {
                 error_page::draw_error_page(frame, inner, &ui_state, err);
             } else if ui_state.in_home {
                 ui::home::draw_home(frame, inner, &ui_state);
@@ -91,14 +101,16 @@ fn main() {
                                         gc_client::draw_client(frame, inner, &ui_state);
                                     }
                                 }
-                                GroupChatMode::Host => gc_host::draw_host(frame, inner, &ui_state),
+                                GroupChatMode::Host => {
+                                    gc_host::draw_host(frame, inner, &ui_state, &gc_host_state)
+                                }
                             }
                         }
                     }
                 }
             }
         }) {
-            ui_state.error = Some(err.kind());
+            ui_state.error = Some(err);
             break;
         }
 
@@ -122,14 +134,14 @@ fn main() {
             && match event::poll(Duration::from_millis(16)) {
                 Ok(result) => result,
                 Err(err) => {
-                    ui_state.error = Some(err.kind());
+                    ui_state.error = Some(err);
                     continue;
                 }
             }
             && let Event::Key(key_event) = match event::read() {
                 Ok(event) => event,
                 Err(err) => {
-                    ui_state.error = Some(err.kind());
+                    ui_state.error = Some(err);
                     continue;
                 }
             }
@@ -190,14 +202,14 @@ fn main() {
             && match event::poll(Duration::from_millis(16)) {
                 Ok(result) => result,
                 Err(err) => {
-                    ui_state.error = Some(err.kind());
+                    ui_state.error = Some(err);
                     continue;
                 }
             }
             && let Event::Key(key_event) = match event::read() {
                 Ok(event) => event,
                 Err(err) => {
-                    ui_state.error = Some(err.kind());
+                    ui_state.error = Some(err);
                     continue;
                 }
             }
@@ -456,6 +468,7 @@ fn main() {
                     if let Some(gc_mode) = ui_state.gc_mode {
                         match gc_mode {
                             GroupChatMode::Client => {
+                                // Things that needs to be ran once
                                 if !gc_client_state.ran_once {
                                     gc_client_state.ran_once = true;
 
@@ -473,6 +486,7 @@ fn main() {
                                     });
                                 }
 
+                                // If statement for gc_selector
                                 if !gc_client_state.host_decided {
                                     while let Ok((host_ip, host_name)) =
                                         host_discovery_rx.try_recv()
@@ -484,7 +498,7 @@ fn main() {
                                         && let Event::Key(key_event) = match event::read() {
                                             Ok(event) => event,
                                             Err(err) => {
-                                                ui_state.error = Some(err.kind());
+                                                ui_state.error = Some(err);
                                                 continue;
                                             }
                                         }
@@ -551,7 +565,7 @@ fn main() {
                                     gc_host_state.ran_once = true;
 
                                     gc_host_state.users.insert(
-                                        ui_state.local_ip.parse::<IpAddr>().unwrap(),
+                                        ui_state.local_ip,
                                         User {
                                             username: ui_state.username.clone(),
                                             online: true,
@@ -563,6 +577,39 @@ fn main() {
                                 }
 
                                 gc_client_state.users = gc_host_state.users.clone();
+
+                                // Host chat key logic
+                                if event::poll(Duration::from_millis(16)).unwrap_or(false)
+                                    && let Event::Key(key_event) = match event::read() {
+                                        Ok(event) => event,
+                                        Err(err) => {
+                                            ui_state.error = Some(err);
+                                            continue;
+                                        }
+                                    }
+                                {
+                                    match key_event.code {
+                                        KeyCode::Char(c) => {
+                                            ui_state.input.push(c);
+                                        }
+
+                                        KeyCode::Backspace => {
+                                            ui_state.input.pop();
+                                        }
+
+                                        KeyCode::Enter => {
+                                            if !ui_state.input.is_empty() {
+                                                gc_host_state.messages.push(Message {
+                                                    sender: ui_state.local_ip,
+                                                    message: ui_state.input.clone(),
+                                                });
+                                                ui_state.input.clear();
+                                            }
+                                        }
+
+                                        _ => {}
+                                    }
+                                }
                             }
                         }
                     }

@@ -1,4 +1,4 @@
-use std::{fs, process::Command};
+use std::{fs, net::IpAddr, process::Command};
 
 pub fn ip_command_exists() -> bool {
     Command::new("ip")
@@ -87,7 +87,7 @@ pub fn get_broadcast_addr(interface: &str) -> std::io::Result<String> {
     Err(std::io::Error::other("Failed to get broadcast address"))
 }
 
-pub fn get_local_ip() -> Option<String> {
+pub fn get_local_ip() -> Option<IpAddr> {
     if let Ok(output) = Command::new("ip")
         .args(["route", "get", "8.8.8.8"])
         .output()
@@ -95,9 +95,11 @@ pub fn get_local_ip() -> Option<String> {
         let text = String::from_utf8_lossy(&output.stdout);
         let mut words = text.split_whitespace();
         while let Some(word) = words.next() {
-            if word == "src" {
-                let ip = words.next();
-                return ip.map(|ip| ip.to_string());
+            if word == "src"
+                && let Some(ip) = words.next()
+                && let Ok(ip) = ip.parse::<IpAddr>()
+            {
+                return Some(ip);
             }
         }
     }
