@@ -659,6 +659,22 @@ fn main() {
                                 while let Ok(err) = error_rx.try_recv() {
                                     ui_state.error = Some(err);
                                 }
+
+                                while let Ok(packet) = from_clients_rx.try_recv() {
+                                    match packet {
+                                        Packet::User { ip, username } => {
+                                            gc_host_state.users.insert(
+                                                ip,
+                                                User {
+                                                    username,
+                                                    online: true,
+                                                },
+                                            );
+                                        }
+                                        _ => {}
+                                    }
+                                }
+
                                 gc_client_state.users = gc_host_state.users.clone();
 
                                 // Host chat key logic
