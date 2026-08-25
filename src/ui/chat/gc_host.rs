@@ -7,6 +7,7 @@ use ratatui::{
 };
 
 use crate::states::{group_chat_state::GroupChatHostState, ui_state::UiState};
+
 pub fn draw_host(
     frame: &mut Frame,
     inner: Rect,
@@ -171,16 +172,27 @@ pub fn draw_host(
     let input = if cursor_visible {
         format!("{}█", ui_state.input)
     } else {
-        ui_state.input.clone()
+        format!("{} ", ui_state.input)
+    };
+
+    let input_rect = input_inner.inner(Margin {
+        horizontal: 1,
+        vertical: 1,
+    });
+
+    let input_width = input_rect.width.max(1) as usize;
+
+    let visible_input: String = if input.chars().count() > input_width {
+        let skip = input.chars().count() - input_width;
+        input.chars().skip(skip).collect()
+    } else {
+        input
     };
 
     frame.render_widget(
-        Paragraph::new(input)
+        Paragraph::new(visible_input)
             .style(Style::default().fg(colors.text))
             .wrap(Wrap { trim: false }),
-        input_inner.inner(Margin {
-            horizontal: 1,
-            vertical: 1,
-        }),
+        input_rect,
     );
 }
