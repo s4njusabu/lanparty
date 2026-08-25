@@ -6,9 +6,14 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph, Wrap},
 };
 
-use crate::states::ui_state::UiState;
+use crate::states::{group_chat_state::GroupChatClientState, ui_state::UiState};
 
-pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
+pub fn draw_client(
+    frame: &mut Frame,
+    inner: Rect,
+    ui_state: &mut UiState,
+    gc_client_state: &GroupChatClientState,
+) {
     let colors = ui_state.theme.colors();
 
     let area = inner.inner(Margin {
@@ -22,6 +27,7 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
     let [messages_area, info_area] =
         Layout::horizontal([Constraint::Min(1), Constraint::Length(30)]).areas(chat_area);
 
+    // Messages
     let messages_block = Block::bordered()
         .title(
             Line::from(" Messages ").style(
@@ -38,45 +44,58 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
 
     frame.render_widget(messages_block, messages_area);
 
+    let mut messages = Vec::new();
+
+    for message in &gc_client_state.messages {
+        let username = gc_client_state
+            .users
+            .get(&message.sender)
+            .map_or("Unknown", |user| user.username.as_str());
+
+        messages.push(Line::from(vec![
+            Span::styled(
+                username,
+                Style::default()
+                    .fg(colors.accent)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(": ", Style::default().fg(colors.text)),
+            Span::styled(&message.message, Style::default().fg(colors.text)),
+        ]));
+
+        messages.push(Line::default());
+    }
+
+    let messages_rect = messages_inner.inner(Margin {
+        horizontal: 3,
+        vertical: 1,
+    });
+
+    let rect_width = messages_rect.width.max(1) as usize;
+
+    let wrapped_lines: u16 = messages
+        .iter()
+        .map(|line| line.width().max(1).div_ceil(rect_width) as u16)
+        .sum();
+
+    let max_scroll = wrapped_lines.saturating_sub(messages_rect.height);
+
+    ui_state.chat_max_scroll = max_scroll;
+
+    let scroll = if ui_state.chat_at_bottom {
+        max_scroll
+    } else {
+        ui_state.chat_scroll.min(max_scroll)
+    };
+
     frame.render_widget(
-        Paragraph::new(vec![
-            Line::from(vec![
-                Span::styled(
-                    "Sanju",
-                    Style::default()
-                        .fg(colors.accent)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(": Hey everyone", Style::default().fg(colors.text)),
-            ]),
-            Line::default(),
-            Line::from(vec![
-                Span::styled(
-                    "Alex",
-                    Style::default()
-                        .fg(colors.accent)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(": What's up?", Style::default().fg(colors.text)),
-            ]),
-            Line::default(),
-            Line::from(vec![
-                Span::styled(
-                    "You",
-                    Style::default()
-                        .fg(colors.accent)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(": Testing group chat", Style::default().fg(colors.text)),
-            ]),
-        ])
-        .wrap(Wrap { trim: false }),
-        messages_inner.inner(Margin {
-            horizontal: 3,
-            vertical: 1,
-        }),
+        Paragraph::new(messages)
+            .wrap(Wrap { trim: false })
+            .scroll((scroll, 0)),
+        messages_rect,
     );
 
+    // Users
     let users_block = Block::bordered()
         .title(
             Line::from(" Users ").style(
@@ -92,50 +111,45 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
 
     frame.render_widget(users_block, info_area);
 
+    let mut users = Vec::new();
+
+    for (ip, user) in &gc_client_state.users {
+        let status_color = if user.online {
+            ratatui::style::Color::LightGreen
+        } else {
+            ratatui::style::Color::LightRed
+        };
+
+        users.push(Line::from(vec![
+            Span::styled("● ", Style::default().fg(status_color)),
+            Span::styled(
+                &user.username,
+                Style::default()
+                    .fg(colors.text)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]));
+
+        users.push(Line::styled(
+            format!("  {ip}"),
+            Style::default().fg(colors.text),
+        ));
+
+        users.push(Line::default());
+    }
+
     frame.render_widget(
-        Paragraph::new(vec![
-            Line::from(vec![
-                Span::styled("● ", Style::default().fg(ratatui::style::Color::LightGreen)),
-                Span::styled(
-                    "Sanju",
-                    Style::default()
-                        .fg(colors.text)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ]),
-            Line::styled("  192.168.1.10", Style::default().fg(colors.text)),
-            Line::default(),
-            Line::from(vec![
-                Span::styled("● ", Style::default().fg(ratatui::style::Color::LightGreen)),
-                Span::styled(
-                    "Alex",
-                    Style::default()
-                        .fg(colors.text)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ]),
-            Line::styled("  192.168.1.11", Style::default().fg(colors.text)),
-            Line::default(),
-            Line::from(vec![
-                Span::styled("● ", Style::default().fg(ratatui::style::Color::LightRed)),
-                Span::styled(
-                    "Bob",
-                    Style::default()
-                        .fg(colors.text)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ]),
-            Line::styled("  192.168.1.12", Style::default().fg(colors.text)),
-        ]),
+        Paragraph::new(users),
         users_inner.inner(Margin {
             horizontal: 2,
             vertical: 1,
         }),
     );
 
+    // Input
     let input_block = Block::bordered()
         .title(
-            Line::from(" Input - Sanju ").style(
+            Line::from(format!(" Input - {} ", ui_state.username)).style(
                 Style::default()
                     .fg(colors.text)
                     .add_modifier(Modifier::BOLD),
@@ -148,13 +162,37 @@ pub fn draw_client(frame: &mut Frame, inner: Rect, ui_state: &UiState) {
 
     frame.render_widget(input_block, input_area);
 
+    let millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
+    let cursor_visible = (millis / 500).is_multiple_of(2);
+
+    let input = if cursor_visible {
+        format!("{}█", ui_state.input)
+    } else {
+        format!("{} ", ui_state.input)
+    };
+
+    let input_rect = input_inner.inner(Margin {
+        horizontal: 1,
+        vertical: 1,
+    });
+
+    let input_width = input_rect.width.max(1) as usize;
+
+    let visible_input: String = if input.chars().count() > input_width {
+        let skip = input.chars().count() - input_width;
+        input.chars().skip(skip).collect()
+    } else {
+        input
+    };
+
     frame.render_widget(
-        Paragraph::new("Type your message here...")
+        Paragraph::new(visible_input)
             .style(Style::default().fg(colors.text))
             .wrap(Wrap { trim: false }),
-        input_inner.inner(Margin {
-            horizontal: 1,
-            vertical: 1,
-        }),
+        input_rect,
     );
 }
