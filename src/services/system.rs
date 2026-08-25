@@ -7,7 +7,7 @@ pub fn ip_command_exists() -> bool {
         .is_ok_and(|output| output.status.success())
 }
 
-pub fn get_os_id() -> std::io::Result<String> {
+fn get_os_id() -> std::io::Result<String> {
     let output = fs::read_to_string("/etc/os-release")?;
 
     for line in output.lines() {
