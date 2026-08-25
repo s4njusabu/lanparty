@@ -56,6 +56,7 @@ fn main() {
 
     // Channels
     let (host_discovery_tx, host_discovery_rx) = mpsc::channel::<(IpAddr, String)>();
+    let (accept_clients_tx, accept_clients_rx) = mpsc::channel::<(IpAddr, String)>();
 
     loop {
         // Render block
@@ -102,7 +103,7 @@ fn main() {
                                     }
                                 }
                                 GroupChatMode::Host => {
-                                    gc_host::draw_host(frame, inner, &ui_state, &gc_host_state)
+                                    gc_host::draw_host(frame, inner, &mut ui_state, &gc_host_state)
                                 }
                             }
                         }
@@ -604,9 +605,30 @@ fn main() {
                                                     message: ui_state.input.clone(),
                                                 });
                                                 ui_state.input.clear();
+
+                                                ui_state.chat_at_bottom = true;
+                                                ui_state.chat_scroll = ui_state.chat_max_scroll;
                                             }
                                         }
+                                        KeyCode::Up => {
+                                            if ui_state.chat_at_bottom {
+                                                ui_state.chat_at_bottom = false;
+                                            }
 
+                                            ui_state.chat_scroll =
+                                                ui_state.chat_scroll.saturating_sub(1);
+                                        }
+
+                                        KeyCode::Down => {
+                                            ui_state.chat_scroll = ui_state
+                                                .chat_scroll
+                                                .saturating_add(1)
+                                                .min(ui_state.chat_max_scroll);
+
+                                            if ui_state.chat_scroll == ui_state.chat_max_scroll {
+                                                ui_state.chat_at_bottom = true;
+                                            }
+                                        }
                                         _ => {}
                                     }
                                 }

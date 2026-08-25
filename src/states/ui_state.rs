@@ -40,6 +40,11 @@ pub struct UiState {
 
     // group chat
     pub gc_mode: Option<GroupChatMode>,
+
+    // scroll
+    pub chat_scroll: u16,
+    pub chat_max_scroll: u16,
+    pub chat_at_bottom: bool,
 }
 
 #[derive(PartialEq)]
@@ -106,6 +111,11 @@ impl UiState {
 
             // group chat
             gc_mode: None,
+
+            // scroll
+            chat_scroll: 0,
+            chat_max_scroll: 0,
+            chat_at_bottom: true,
         }
     }
 }
