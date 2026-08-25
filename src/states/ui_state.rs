@@ -1,9 +1,9 @@
-use std::io::ErrorKind;
-
-use crate::{
-    services::{system, username},
-    themes::Theme,
+use std::{
+    io::Error,
+    net::{IpAddr, Ipv4Addr},
 };
+
+use crate::{services::username, themes::Theme};
 
 pub struct UiState {
     pub theme: Theme,
@@ -27,10 +27,10 @@ pub struct UiState {
     pub submenu_hovered: Option<usize>,
     pub submenu_selected: Option<usize>,
 
-    pub error: Option<ErrorKind>,
+    pub error: Option<Error>,
 
     // IP address
-    pub local_ip: String,
+    pub local_ip: IpAddr,
 
     // input state
     pub input_mode: Option<InputMode>,
@@ -72,12 +72,6 @@ pub enum GroupChatMode {
 
 impl UiState {
     pub fn new() -> Self {
-        let local_ip = if let Some(ip) = system::get_local_ip() {
-            ip
-        } else {
-            String::from("UNKNOWN")
-        };
-
         Self {
             theme: Theme::Dark,
             username: username::default_username(),
@@ -103,7 +97,7 @@ impl UiState {
             error: None,
 
             // IP address
-            local_ip,
+            local_ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
 
             input: String::new(),
             input_mode: None,
