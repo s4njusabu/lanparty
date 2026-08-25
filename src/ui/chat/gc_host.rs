@@ -7,11 +7,10 @@ use ratatui::{
 };
 
 use crate::states::{group_chat_state::GroupChatHostState, ui_state::UiState};
-
 pub fn draw_host(
     frame: &mut Frame,
     inner: Rect,
-    ui_state: &UiState,
+    ui_state: &mut UiState,
     gc_host_state: &GroupChatHostState,
 ) {
     let colors = ui_state.theme.colors();
@@ -66,12 +65,33 @@ pub fn draw_host(
         messages.push(Line::default());
     }
 
+    let messages_rect = messages_inner.inner(Margin {
+        horizontal: 3,
+        vertical: 1,
+    });
+
+    let rect_width = messages_rect.width.max(1) as usize;
+
+    let wrapped_lines: u16 = messages
+        .iter()
+        .map(|line| line.width().max(1).div_ceil(rect_width) as u16)
+        .sum();
+
+    let max_scroll = wrapped_lines.saturating_sub(messages_rect.height);
+
+    ui_state.chat_max_scroll = max_scroll;
+
+    let scroll = if ui_state.chat_at_bottom {
+        max_scroll
+    } else {
+        ui_state.chat_scroll.min(max_scroll)
+    };
+
     frame.render_widget(
-        Paragraph::new(messages).wrap(Wrap { trim: false }),
-        messages_inner.inner(Margin {
-            horizontal: 3,
-            vertical: 1,
-        }),
+        Paragraph::new(messages)
+            .wrap(Wrap { trim: false })
+            .scroll((scroll, 0)),
+        messages_rect,
     );
 
     // Users
@@ -146,7 +166,7 @@ pub fn draw_host(
         .unwrap()
         .as_millis();
 
-    let cursor_visible = (millis / 500) % 2 == 0;
+    let cursor_visible = (millis / 500).is_multiple_of(2);
 
     let input = if cursor_visible {
         format!("{}█", ui_state.input)
