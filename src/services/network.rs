@@ -1,13 +1,14 @@
 use std::{
     io::Read,
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
+    sync::mpsc::Sender,
     thread,
     time::Duration,
 };
 
 use crate::{
-    services::system::{self, get_local_ip},
-    states::{group_chat_state::Message, ui_state::UiState},
+    services::system,
+    states::group_chat_state::{Message, Packet},
 };
 
 const DISCOVERY_PACKET: &str = "LANPARTY";
@@ -56,18 +57,45 @@ pub fn receive_udp_packets_from_broadcast() -> std::io::Result<(IpAddr, String)>
 }
 
 // Create connection
-pub fn create_connection(ui_state: &UiState) -> std::io::Result<()> {
-    let listener = TcpListener::bind(format!("{}:{}", ui_state.local_ip, DISCOVERY_PORT))?;
+pub fn create_connection(host_ip: IpAddr, from_client_tx: Sender<Packet>) -> std::io::Result<()> {
+    let listener = TcpListener::bind(format!("{}:{}", host_ip, DISCOVERY_PORT))?;
 
     loop {
         let (mut stream, addr) = listener.accept()?;
+        let tx = from_client_tx.clone();
+
         thread::spawn(move || {
             let mut buf = [0u8; 1024];
+            let username = match stream.read(&mut buf) {
+                Ok(0) => return,
+                Ok(n) => String::from_utf8_lossy(&buf[..n]).to_string(),
+                Err(_) => return,
+            };
+
+            if tx
+                .send(Packet::User {
+                    ip: addr.ip(),
+                    username: username,
+                })
+                .is_err()
+            {
+                return;
+            }
 
             loop {
                 match stream.read(&mut buf) {
                     Ok(0) => break,
-                    Ok(_) => {}
+                    Ok(n) => {
+                        if tx
+                            .send(Packet::Message(Message {
+                                sender: addr.ip(),
+                                message: String::from_utf8_lossy(&buf[..n]).to_string(),
+                            }))
+                            .is_err()
+                        {
+                            return;
+                        }
+                    }
                     Err(_) => break,
                 }
             }
