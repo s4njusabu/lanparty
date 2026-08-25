@@ -99,7 +99,12 @@ fn main() {
                                             &gc_client_state,
                                         );
                                     } else {
-                                        gc_client::draw_client(frame, inner, &ui_state);
+                                        gc_client::draw_client(
+                                            frame,
+                                            inner,
+                                            &mut ui_state,
+                                            &gc_client_state,
+                                        );
                                     }
                                 }
                                 GroupChatMode::Host => {
@@ -553,6 +558,65 @@ fn main() {
                                             {
                                                 ui_state.input.clear();
                                                 ui_state.input_mode = None;
+                                            }
+
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                                // After deciding the host continue the chat (key logic in chat)
+                                if gc_client_state.host_decided {
+                                    if event::poll(Duration::from_millis(16)).unwrap_or(false)
+                                        && let Event::Key(key_event) = match event::read() {
+                                            Ok(event) => event,
+                                            Err(err) => {
+                                                ui_state.error = Some(err);
+                                                continue;
+                                            }
+                                        }
+                                    {
+                                        match key_event.code {
+                                            KeyCode::Char(c) => {
+                                                ui_state.input.push(c);
+                                            }
+
+                                            KeyCode::Backspace => {
+                                                ui_state.input.pop();
+                                            }
+
+                                            KeyCode::Enter => {
+                                                if !ui_state.input.is_empty() {
+                                                    gc_client_state.messages.push(Message {
+                                                        sender: ui_state.local_ip,
+                                                        message: ui_state.input.clone(),
+                                                    });
+
+                                                    ui_state.input.clear();
+
+                                                    ui_state.chat_at_bottom = true;
+                                                    ui_state.chat_scroll = ui_state.chat_max_scroll;
+                                                }
+                                            }
+
+                                            KeyCode::Up => {
+                                                if ui_state.chat_at_bottom {
+                                                    ui_state.chat_at_bottom = false;
+                                                }
+
+                                                ui_state.chat_scroll =
+                                                    ui_state.chat_scroll.saturating_sub(1);
+                                            }
+
+                                            KeyCode::Down => {
+                                                ui_state.chat_scroll = ui_state
+                                                    .chat_scroll
+                                                    .saturating_add(1)
+                                                    .min(ui_state.chat_max_scroll);
+
+                                                if ui_state.chat_scroll == ui_state.chat_max_scroll
+                                                {
+                                                    ui_state.chat_at_bottom = true;
+                                                }
                                             }
 
                                             _ => {}
