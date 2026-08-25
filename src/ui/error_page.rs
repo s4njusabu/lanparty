@@ -26,7 +26,10 @@ pub fn draw_error_page(frame: &mut Frame, inner: Rect, ui_state: &UiState, err: 
     );
 
     let error = match err.kind() {
-        ErrorKind::AddrInUse => "Port 55555 is already in use".to_string(),
+        ErrorKind::AddrInUse => {
+            "Port 55555 is already in use. Run \"lsof -i :55555\" to find whats using the port"
+                .to_string()
+        }
         ErrorKind::PermissionDenied => "Permission denied".to_string(),
         ErrorKind::AddrNotAvailable => "No valid network interface found".to_string(),
         ErrorKind::ConnectionRefused => "Couldnt connect to the host".to_string(),

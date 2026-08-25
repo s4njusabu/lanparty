@@ -1,6 +1,6 @@
 [package]
 name = "lanparty"
-version = "0.2.10"
+version = "0.2.11"
 edition = "2024"
 description = "LAN communication"
 license = "GPL-3.0"
