@@ -9,7 +9,8 @@ use ratatui::{
 use crate::{
     services::{
         network::{
-            create_connection, receive_udp_packets_from_broadcast, send_udp_packets_to_broadcast,
+            accept_connections, create_connection, receive_udp_packets_from_broadcast,
+            send_udp_packets_to_broadcast,
         },
         system,
     },
@@ -57,8 +58,11 @@ fn main() {
     }
 
     // Channels
+    // Channels
     let (host_discovery_tx, host_discovery_rx) = mpsc::channel::<(IpAddr, String)>();
     let (from_clients_tx, from_clients_rx) = mpsc::channel::<Packet>();
+    let (to_server_tx, to_server_rx) = mpsc::channel::<String>();
+    let mut to_server_rx = Some(to_server_rx);
     let (error_tx, error_rx) = mpsc::channel::<std::io::Error>();
 
     loop {
@@ -567,6 +571,39 @@ fn main() {
                                         }
                                     }
                                 }
+                                // After deciding the host, connect once
+                                if gc_client_state.host_decided && !gc_client_state.connected {
+                                    gc_client_state.connected = true;
+
+                                    let host_ip = gc_client_state.host_ip.unwrap();
+                                    let username = ui_state.username.clone();
+                                    let from_clients_tx_clone = from_clients_tx.clone();
+                                    let error_tx_clone = error_tx.clone();
+
+                                    if let Some(to_server_rx) = to_server_rx.take() {
+                                        thread::spawn(move || {
+                                            if let Err(err) = accept_connections(
+                                                host_ip,
+                                                username,
+                                                from_clients_tx_clone,
+                                                to_server_rx,
+                                            ) {
+                                                let _ = error_tx_clone.send(err);
+                                            }
+                                        });
+                                    }
+                                }
+
+                                while let Ok(err) = error_rx.try_recv() {
+                                    ui_state.error = Some(err);
+                                }
+
+                                while let Ok(packet) = from_clients_rx.try_recv() {
+                                    if let Packet::Message(msg) = packet {
+                                        gc_client_state.messages.push(msg);
+                                    }
+                                }
+
                                 // After deciding the host continue the chat (key logic in chat)
                                 if gc_client_state.host_decided
                                     && event::poll(Duration::from_millis(16)).unwrap_or(false)
@@ -589,9 +626,13 @@ fn main() {
 
                                         KeyCode::Enter => {
                                             if !ui_state.input.is_empty() {
+                                                let message = ui_state.input.clone();
+
+                                                let _ = to_server_tx.send(message.clone());
+
                                                 gc_client_state.messages.push(Message {
                                                     sender: ui_state.local_ip,
-                                                    message: ui_state.input.clone(),
+                                                    message,
                                                 });
 
                                                 ui_state.input.clear();
@@ -661,17 +702,14 @@ fn main() {
                                 }
 
                                 while let Ok(packet) = from_clients_rx.try_recv() {
-                                    match packet {
-                                        Packet::User { ip, username } => {
-                                            gc_host_state.users.insert(
-                                                ip,
-                                                User {
-                                                    username,
-                                                    online: true,
-                                                },
-                                            );
-                                        }
-                                        _ => {}
+                                    if let Packet::User { ip, username } = packet {
+                                        gc_host_state.users.insert(
+                                            ip,
+                                            User {
+                                                username,
+                                                online: true,
+                                            },
+                                        );
                                     }
                                 }
 
