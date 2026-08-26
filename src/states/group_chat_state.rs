@@ -48,6 +48,7 @@ pub struct GroupChatClientState {
     pub host_decided: bool,
     pub host_ip: Option<IpAddr>,
     pub ran_once: bool,
+    pub connected: bool,
 }
 
 impl GroupChatClientState {
@@ -59,6 +60,7 @@ impl GroupChatClientState {
             host_decided: false,
             host_ip: None,
             ran_once: false,
+            connected: false,
         }
     }
 }
