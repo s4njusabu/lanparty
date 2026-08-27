@@ -77,6 +77,7 @@ pub struct User {
 }
 
 pub enum Packet {
-    User { ip: IpAddr, username: String },
+    UserConnected { ip: IpAddr, username: String },
+    UserDisconnected(IpAddr),
     Message(Message),
 }

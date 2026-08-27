@@ -58,7 +58,6 @@ fn main() {
     }
 
     // Channels
-    // Channels
     let (host_discovery_tx, host_discovery_rx) = mpsc::channel::<(IpAddr, String)>();
     let (from_clients_tx, from_clients_rx) = mpsc::channel::<Packet>();
     let (to_server_tx, to_server_rx) = mpsc::channel::<String>();
@@ -573,8 +572,6 @@ fn main() {
                                 }
                                 // After deciding the host, connect once
                                 if gc_client_state.host_decided && !gc_client_state.connected {
-                                    gc_client_state.connected = true;
-
                                     let host_ip = gc_client_state.host_ip.unwrap();
                                     let username = ui_state.username.clone();
                                     let from_clients_tx_clone = from_clients_tx.clone();
@@ -592,6 +589,7 @@ fn main() {
                                             }
                                         });
                                     }
+                                    gc_client_state.connected = true;
                                 }
 
                                 while let Ok(err) = error_rx.try_recv() {
@@ -700,16 +698,27 @@ fn main() {
                                 while let Ok(err) = error_rx.try_recv() {
                                     ui_state.error = Some(err);
                                 }
-
                                 while let Ok(packet) = from_clients_rx.try_recv() {
-                                    if let Packet::User { ip, username } = packet {
-                                        gc_host_state.users.insert(
-                                            ip,
-                                            User {
-                                                username,
-                                                online: true,
-                                            },
-                                        );
+                                    match packet {
+                                        Packet::UserConnected { ip, username } => {
+                                            gc_host_state.users.insert(
+                                                ip,
+                                                User {
+                                                    username,
+                                                    online: true,
+                                                },
+                                            );
+                                        }
+
+                                        Packet::UserDisconnected(ip) => {
+                                            if let Some(user) = gc_host_state.users.get_mut(&ip) {
+                                                user.online = false;
+                                            }
+                                        }
+
+                                        Packet::Message(msg) => {
+                                            gc_host_state.messages.push(msg);
+                                        }
                                     }
                                 }
 
