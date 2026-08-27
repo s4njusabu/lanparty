@@ -39,7 +39,7 @@ pub fn draw_group_chat_selector(
     let border_style = Style::default().fg(colors.accent);
 
     // Found hosts
-    let [hosts] = Layout::horizontal([Constraint::Length(30)])
+    let [hosts] = Layout::horizontal([Constraint::Length(40)])
         .flex(Flex::Center)
         .areas(hosts);
 
@@ -74,7 +74,7 @@ pub fn draw_group_chat_selector(
     );
 
     // Connect
-    let [input] = Layout::horizontal([Constraint::Length(30)])
+    let [input] = Layout::horizontal([Constraint::Length(40)])
         .flex(Flex::Center)
         .areas(input);
 

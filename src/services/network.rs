@@ -1,7 +1,7 @@
 use std::{
-    io::Read,
+    io::{Read, Write},
     net::{IpAddr, TcpListener, TcpStream, UdpSocket},
-    sync::mpsc::Sender,
+    sync::mpsc::{Receiver, Sender},
     thread,
     time::Duration,
 };
@@ -104,9 +104,47 @@ pub fn create_connection(host_ip: IpAddr, from_client_tx: Sender<Packet>) -> std
 }
 
 // Accept
-pub fn accept_connections(ip: IpAddr) -> std::io::Result<()> {
+pub fn accept_connections(
+    ip: IpAddr,
+    username: String,
+    from_clients_tx: Sender<Packet>,
+    to_server_rx: Receiver<String>,
+) -> std::io::Result<()> {
     let destination = format!("{}:{}", ip, DISCOVERY_PORT);
-    let listener = TcpStream::connect(destination)?;
+    let mut stream = TcpStream::connect(destination)?;
+    stream.write_all(username.as_bytes())?;
+
+    let mut read_stream = stream.try_clone()?;
+    let mut write_stream = stream;
+
+    thread::spawn(move || {
+        let mut buf = [0u8; 1024];
+        loop {
+            match read_stream.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    if from_clients_tx
+                        .send(Packet::Message(Message {
+                            sender: ip,
+                            message: String::from_utf8_lossy(&buf[..n]).to_string(),
+                        }))
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+    });
+
+    thread::spawn(move || {
+        while let Ok(text) = to_server_rx.recv() {
+            if write_stream.write_all(text.as_bytes()).is_err() {
+                break;
+            }
+        }
+    });
 
     Ok(())
 }
