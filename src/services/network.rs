@@ -73,7 +73,7 @@ pub fn create_connection(host_ip: IpAddr, from_client_tx: Sender<Packet>) -> std
             };
 
             if tx
-                .send(Packet::User {
+                .send(Packet::UserConnected {
                     ip: addr.ip(),
                     username: username,
                 })
@@ -84,7 +84,10 @@ pub fn create_connection(host_ip: IpAddr, from_client_tx: Sender<Packet>) -> std
 
             loop {
                 match stream.read(&mut buf) {
-                    Ok(0) => break,
+                    Ok(0) => {
+                        let _ = tx.send(Packet::UserDisconnected(addr.ip()));
+                        break;
+                    }
                     Ok(n) => {
                         if tx
                             .send(Packet::Message(Message {
@@ -96,7 +99,10 @@ pub fn create_connection(host_ip: IpAddr, from_client_tx: Sender<Packet>) -> std
                             return;
                         }
                     }
-                    Err(_) => break,
+                    Err(_) => {
+                        let _ = tx.send(Packet::UserDisconnected(addr.ip()));
+                        break;
+                    }
                 }
             }
         });
