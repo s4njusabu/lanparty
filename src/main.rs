@@ -59,7 +59,7 @@ fn main() {
 
     // Channels
     let (host_discovery_tx, host_discovery_rx) = mpsc::channel::<(IpAddr, String)>();
-    let (from_clients_tx, from_clients_rx) = mpsc::channel::<Packet>();
+    let (from_client_tx, from_client_rx) = mpsc::channel::<Packet>();
     let (to_server_tx, to_server_rx) = mpsc::channel::<String>();
     let mut to_server_rx = Some(to_server_rx);
     let (error_tx, error_rx) = mpsc::channel::<std::io::Error>();
@@ -570,11 +570,11 @@ fn main() {
                                         }
                                     }
                                 }
-                                // After deciding the host, connect once
+                                // After deciding the host connect to it
                                 if gc_client_state.host_decided && !gc_client_state.connected {
                                     let host_ip = gc_client_state.host_ip.unwrap();
                                     let username = ui_state.username.clone();
-                                    let from_clients_tx_clone = from_clients_tx.clone();
+                                    let from_clients_tx_clone = from_client_tx.clone();
                                     let error_tx_clone = error_tx.clone();
 
                                     if let Some(to_server_rx) = to_server_rx.take() {
@@ -596,13 +596,13 @@ fn main() {
                                     ui_state.error = Some(err);
                                 }
 
-                                while let Ok(packet) = from_clients_rx.try_recv() {
+                                while let Ok(packet) = from_client_rx.try_recv() {
                                     if let Packet::Message(msg) = packet {
                                         gc_client_state.messages.push(msg);
                                     }
                                 }
 
-                                // After deciding the host continue the chat (key logic in chat)
+                                // After deciding the host continue the chat (key logic of chat)
                                 if gc_client_state.host_decided
                                     && event::poll(Duration::from_millis(16)).unwrap_or(false)
                                     && let Event::Key(key_event) = match event::read() {
@@ -680,7 +680,7 @@ fn main() {
                                     let username = ui_state.username.clone();
                                     thread::spawn(move || send_udp_packets_to_broadcast(&username));
 
-                                    let from_clients_tx_clone = from_clients_tx.clone();
+                                    let from_clients_tx_clone = from_client_tx.clone();
                                     let error_tx_clone = error_tx.clone();
                                     thread::spawn(move || {
                                         match create_connection(
@@ -698,7 +698,7 @@ fn main() {
                                 while let Ok(err) = error_rx.try_recv() {
                                     ui_state.error = Some(err);
                                 }
-                                while let Ok(packet) = from_clients_rx.try_recv() {
+                                while let Ok(packet) = from_client_rx.try_recv() {
                                     match packet {
                                         Packet::UserConnected { ip, username } => {
                                             gc_host_state.users.insert(
@@ -718,7 +718,8 @@ fn main() {
 
                                         Packet::Message(msg) => {
                                             gc_host_state.messages.push(msg);
-                                        }
+                                        },
+                                        _ => {}
                                     }
                                 }
 
