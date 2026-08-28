@@ -41,19 +41,19 @@ impl GroupChatClientState {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Message {
     pub sender: IpAddr,
     pub message: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     pub username: String,
     pub online: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Packet {
     UserConnected { ip: IpAddr, username: String },
     UserDisconnected(IpAddr),
