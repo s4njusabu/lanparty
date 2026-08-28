@@ -1,29 +1,5 @@
-// TO CHANGE
-
-use std::{
-    collections::HashMap,
-    net::{IpAddr, TcpStream},
-};
-
 use serde::{Deserialize, Serialize};
-
-pub struct GroupChatState {
-    pub users: HashMap<IpAddr, User>,
-    pub connections: HashMap<IpAddr, TcpStream>,
-    pub messages: Vec<Message>,
-}
-
-impl GroupChatState {
-    pub fn new() -> Self {
-        Self {
-            users: HashMap::new(),
-            connections: HashMap::new(),
-            messages: Vec::new(),
-        }
-    }
-}
-
-// V2 rewrite
+use std::{collections::HashMap, net::IpAddr};
 
 pub struct GroupChatHostState {
     pub users: HashMap<IpAddr, User>,
@@ -65,19 +41,22 @@ impl GroupChatClientState {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Message {
     pub sender: IpAddr,
     pub message: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct User {
     pub username: String,
     pub online: bool,
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum Packet {
     UserConnected { ip: IpAddr, username: String },
     UserDisconnected(IpAddr),
     Message(Message),
+    UserList(HashMap<IpAddr, User>),
 }
