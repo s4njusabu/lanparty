@@ -182,10 +182,8 @@ pub fn accept_connections(
         // Host to Client
         match stream.read(&mut buf) {
             Ok(0) => {
-    let _ = error_tx.send(std::io::Error::from(
-        std::io::ErrorKind::ConnectionReset,
-    ));
-    break;
+                let _ = error_tx.send(std::io::Error::from(std::io::ErrorKind::ConnectionReset));
+                break;
             }
 
             Ok(n) => {
