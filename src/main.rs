@@ -581,11 +581,14 @@ fn main() {
 
                                     if let Some(to_server_rx) = to_host_rx.take() {
                                         thread::spawn(move || {
+                                            let connection_error_tx = error_tx_clone.clone();
+
                                             if let Err(err) = accept_connections(
                                                 host_ip,
                                                 username,
                                                 from_clients_tx_clone,
                                                 to_server_rx,
+                                                connection_error_tx,
                                             ) {
                                                 let _ = error_tx_clone.send(err);
                                             }

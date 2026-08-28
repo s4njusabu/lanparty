@@ -152,6 +152,7 @@ pub fn accept_connections(
     username: String,
     from_clients_tx: Sender<Packet>,
     to_host_rx: Receiver<String>,
+    error_tx: Sender<std::io::Error>,
 ) -> std::io::Result<()> {
     let destination = format!("{}:{}", ip, DISCOVERY_PORT);
     let mut stream = TcpStream::connect(destination)?;
@@ -164,7 +165,7 @@ pub fn accept_connections(
     let mut buf = [0u8; 4096];
 
     loop {
-        // Host to Client
+        // Client to Host
         if let Ok(message) = to_host_rx.try_recv() {
             let packet = Packet::Message(Message {
                 sender: system::get_local_ip()
@@ -180,7 +181,12 @@ pub fn accept_connections(
 
         // Host to Client
         match stream.read(&mut buf) {
-            Ok(0) => break,
+            Ok(0) => {
+    let _ = error_tx.send(std::io::Error::from(
+        std::io::ErrorKind::ConnectionReset,
+    ));
+    break;
+            }
 
             Ok(n) => {
                 let (packet, _): (Packet, usize) =
