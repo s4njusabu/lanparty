@@ -37,8 +37,6 @@ A terminal chat application for LANs.
   </tr>
 </table>
 
----
-
 ## What it does
 
 - Private chat (soon)
