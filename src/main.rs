@@ -59,9 +59,11 @@ fn main() {
 
     // Channels
     let (host_discovery_tx, host_discovery_rx) = mpsc::channel::<(IpAddr, String)>();
-    let (from_clients_tx, from_clients_rx) = mpsc::channel::<Packet>();
-    let (to_server_tx, to_server_rx) = mpsc::channel::<String>();
-    let mut to_server_rx = Some(to_server_rx);
+    let (from_client_tx, from_client_rx) = mpsc::channel::<Packet>();
+    let (to_clients_tx, to_clients_rx) = mpsc::channel::<Packet>();
+    let mut to_clients_rx = Some(to_clients_rx);
+    let (to_host_tx, to_host_rx) = mpsc::channel::<String>();
+    let mut to_host_rx = Some(to_host_rx);
     let (error_tx, error_rx) = mpsc::channel::<std::io::Error>();
 
     loop {
@@ -570,20 +572,23 @@ fn main() {
                                         }
                                     }
                                 }
-                                // After deciding the host, connect once
+                                // After deciding the host connect to it
                                 if gc_client_state.host_decided && !gc_client_state.connected {
                                     let host_ip = gc_client_state.host_ip.unwrap();
                                     let username = ui_state.username.clone();
-                                    let from_clients_tx_clone = from_clients_tx.clone();
+                                    let from_clients_tx_clone = from_client_tx.clone();
                                     let error_tx_clone = error_tx.clone();
 
-                                    if let Some(to_server_rx) = to_server_rx.take() {
+                                    if let Some(to_server_rx) = to_host_rx.take() {
                                         thread::spawn(move || {
+                                            let connection_error_tx = error_tx_clone.clone();
+
                                             if let Err(err) = accept_connections(
                                                 host_ip,
                                                 username,
                                                 from_clients_tx_clone,
                                                 to_server_rx,
+                                                connection_error_tx,
                                             ) {
                                                 let _ = error_tx_clone.send(err);
                                             }
@@ -596,13 +601,20 @@ fn main() {
                                     ui_state.error = Some(err);
                                 }
 
-                                while let Ok(packet) = from_clients_rx.try_recv() {
-                                    if let Packet::Message(msg) = packet {
-                                        gc_client_state.messages.push(msg);
+                                while let Ok(packet) = from_client_rx.try_recv() {
+                                    match packet {
+                                        Packet::UserList(users) => {
+                                            gc_client_state.users = users;
+                                        }
+
+                                        Packet::Message(msg) => {
+                                            gc_client_state.messages.push(msg);
+                                        }
+
+                                        _ => {}
                                     }
                                 }
-
-                                // After deciding the host continue the chat (key logic in chat)
+                                // After deciding the host continue the chat (key logic of chat)
                                 if gc_client_state.host_decided
                                     && event::poll(Duration::from_millis(16)).unwrap_or(false)
                                     && let Event::Key(key_event) = match event::read() {
@@ -626,12 +638,7 @@ fn main() {
                                             if !ui_state.input.is_empty() {
                                                 let message = ui_state.input.clone();
 
-                                                let _ = to_server_tx.send(message.clone());
-
-                                                gc_client_state.messages.push(Message {
-                                                    sender: ui_state.local_ip,
-                                                    message,
-                                                });
+                                                let _ = to_host_tx.send(message.clone());
 
                                                 ui_state.input.clear();
 
@@ -680,25 +687,26 @@ fn main() {
                                     let username = ui_state.username.clone();
                                     thread::spawn(move || send_udp_packets_to_broadcast(&username));
 
-                                    let from_clients_tx_clone = from_clients_tx.clone();
+                                    let from_client_tx_clone = from_client_tx.clone();
                                     let error_tx_clone = error_tx.clone();
-                                    thread::spawn(move || {
-                                        match create_connection(
-                                            ui_state.local_ip,
-                                            from_clients_tx_clone,
-                                        ) {
-                                            Ok(_) => {}
-                                            Err(err) => {
+                                    // Thread
+                                    if let Some(to_clients_rx) = to_clients_rx.take() {
+                                        thread::spawn(move || {
+                                            if let Err(err) = create_connection(
+                                                ui_state.local_ip,
+                                                from_client_tx_clone,
+                                                to_clients_rx,
+                                            ) {
                                                 let _ = error_tx_clone.send(err);
                                             }
-                                        }
-                                    });
+                                        });
+                                    }
                                 }
 
                                 while let Ok(err) = error_rx.try_recv() {
                                     ui_state.error = Some(err);
                                 }
-                                while let Ok(packet) = from_clients_rx.try_recv() {
+                                while let Ok(packet) = from_client_rx.try_recv() {
                                     match packet {
                                         Packet::UserConnected { ip, username } => {
                                             gc_host_state.users.insert(
@@ -708,21 +716,31 @@ fn main() {
                                                     online: true,
                                                 },
                                             );
+
+                                            let _ = to_clients_tx.send(Packet::UserList(
+                                                gc_host_state.users.clone(),
+                                            ));
                                         }
 
                                         Packet::UserDisconnected(ip) => {
                                             if let Some(user) = gc_host_state.users.get_mut(&ip) {
                                                 user.online = false;
                                             }
+
+                                            let _ = to_clients_tx.send(Packet::UserList(
+                                                gc_host_state.users.clone(),
+                                            ));
                                         }
 
                                         Packet::Message(msg) => {
-                                            gc_host_state.messages.push(msg);
+                                            gc_host_state.messages.push(msg.clone());
+
+                                            let _ = to_clients_tx.send(Packet::Message(msg));
                                         }
+
+                                        Packet::UserList(_) => {}
                                     }
                                 }
-
-                                gc_client_state.users = gc_host_state.users.clone();
 
                                 // Host chat key logic
                                 if event::poll(Duration::from_millis(16)).unwrap_or(false)
@@ -745,10 +763,16 @@ fn main() {
 
                                         KeyCode::Enter => {
                                             if !ui_state.input.is_empty() {
-                                                gc_host_state.messages.push(Message {
+                                                let message = Message {
                                                     sender: ui_state.local_ip,
                                                     message: ui_state.input.clone(),
-                                                });
+                                                };
+
+                                                gc_host_state.messages.push(message.clone());
+
+                                                let _ =
+                                                    to_clients_tx.send(Packet::Message(message));
+
                                                 ui_state.input.clear();
 
                                                 ui_state.chat_at_bottom = true;

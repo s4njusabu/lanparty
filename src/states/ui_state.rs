@@ -15,10 +15,6 @@ pub struct UiState {
 
     pub home_state: HomeOptions,
 
-    // group chat
-    pub group_chat_mode: Option<GroupChatMode>,
-    pub group_chat_selected: bool,
-
     // home state
     pub home_hovered: Option<usize>,
     pub home_selected: Option<usize>,
@@ -86,10 +82,6 @@ impl UiState {
             in_chat: None,
 
             home_state: HomeOptions::PrivateChat,
-
-            // group chat
-            group_chat_mode: None,
-            group_chat_selected: false,
 
             // home state
             home_hovered: Some(0),
