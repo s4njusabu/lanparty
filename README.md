@@ -3,7 +3,7 @@
 A terminal chat application for LANs.
 
 ## Screenshots
----
+
 <table>
   <tr>
     <td align="center">
