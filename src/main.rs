@@ -528,6 +528,7 @@ fn main() {
 
                                                 ui_state.input_mode = Some(InputMode::GroupChat);
                                             }
+                                            KeyCode::Esc if ui_state.input_mode.is_none() => break,
 
                                             KeyCode::Char(c)
                                                 if ui_state.input_mode
