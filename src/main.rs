@@ -667,6 +667,7 @@ fn main() {
                                             }
                                         }
 
+                                        KeyCode::Esc => break,
                                         _ => {}
                                     }
                                 }
@@ -798,6 +799,7 @@ fn main() {
                                                 ui_state.chat_at_bottom = true;
                                             }
                                         }
+                                        KeyCode::Esc => break,
                                         _ => {}
                                     }
                                 }
