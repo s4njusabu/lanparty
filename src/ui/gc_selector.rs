@@ -107,7 +107,7 @@ pub fn draw_group_chat_selector(
     let description_text = if ui_state.input_mode.is_some() {
         "Enter to connect    Esc to cancel"
     } else {
-        "Enter twice to connect    Esc to cancel"
+        "Enter twice to connect    Esc to exit Lanparty"
     };
 
     frame.render_widget(
