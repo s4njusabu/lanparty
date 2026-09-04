@@ -627,6 +627,12 @@ fn main() {
                                     }
                                 {
                                     match key_event.code {
+                                        KeyCode::Esc => break,
+                                        KeyCode::Char('c')
+                                            if key_event.modifiers == KeyModifiers::CONTROL =>
+                                        {
+                                            break;
+                                        }
                                         KeyCode::Char(c) => {
                                             ui_state.input.push(c);
                                         }
@@ -667,8 +673,6 @@ fn main() {
                                                 ui_state.chat_at_bottom = true;
                                             }
                                         }
-
-                                        KeyCode::Esc => break,
                                         _ => {}
                                     }
                                 }
@@ -755,6 +759,12 @@ fn main() {
                                     }
                                 {
                                     match key_event.code {
+                                        KeyCode::Char('c')
+                                            if key_event.modifiers == KeyModifiers::CONTROL =>
+                                        {
+                                            break;
+                                        }
+                                        KeyCode::Esc => break,
                                         KeyCode::Char(c) => {
                                             ui_state.input.push(c);
                                         }
@@ -800,7 +810,6 @@ fn main() {
                                                 ui_state.chat_at_bottom = true;
                                             }
                                         }
-                                        KeyCode::Esc => break,
                                         _ => {}
                                     }
                                 }
