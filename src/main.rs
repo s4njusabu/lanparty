@@ -528,6 +528,7 @@ fn main() {
 
                                                 ui_state.input_mode = Some(InputMode::GroupChat);
                                             }
+                                            KeyCode::Esc if ui_state.input_mode.is_none() => break,
 
                                             KeyCode::Char(c)
                                                 if ui_state.input_mode
@@ -626,6 +627,12 @@ fn main() {
                                     }
                                 {
                                     match key_event.code {
+                                        KeyCode::Esc => break,
+                                        KeyCode::Char('c')
+                                            if key_event.modifiers == KeyModifiers::CONTROL =>
+                                        {
+                                            break;
+                                        }
                                         KeyCode::Char(c) => {
                                             ui_state.input.push(c);
                                         }
@@ -666,7 +673,6 @@ fn main() {
                                                 ui_state.chat_at_bottom = true;
                                             }
                                         }
-
                                         _ => {}
                                     }
                                 }
@@ -753,6 +759,12 @@ fn main() {
                                     }
                                 {
                                     match key_event.code {
+                                        KeyCode::Char('c')
+                                            if key_event.modifiers == KeyModifiers::CONTROL =>
+                                        {
+                                            break;
+                                        }
+                                        KeyCode::Esc => break,
                                         KeyCode::Char(c) => {
                                             ui_state.input.push(c);
                                         }
