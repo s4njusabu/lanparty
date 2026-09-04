@@ -759,12 +759,12 @@ fn main() {
                                     }
                                 {
                                     match key_event.code {
+                                        KeyCode::Esc => break,
                                         KeyCode::Char('c')
                                             if key_event.modifiers == KeyModifiers::CONTROL =>
                                         {
                                             break;
                                         }
-                                        KeyCode::Esc => break,
                                         KeyCode::Char(c) => {
                                             ui_state.input.push(c);
                                         }
