@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::{net::IpAddr, sync::mpsc, thread, time::Duration};
 
 use ratatui::{
